@@ -29,9 +29,25 @@ public final class Sht308 {
         if(!owner.isSht308()||!(owner.getLevel() instanceof ServerLevel))return false;
         powered=!powered;if(!powered){owner.stopMonitor();owner.endCall();emergency=false;notifiedGuards.clear();}owner.changed();return true;
     }
-    public void adjust(DeviceNetwork.Action action){
-        if(!owner.isSht308()||!powered)return;
-        switch(action){case SHT_VOLUME->volume=(volume+1)%3;case SHT_BRIGHTNESS->brightness=(brightness+1)%3;case SHT_CONTRAST->contrast=(contrast+1)%3;default->{return;}}owner.changed();
+    /** Manual p6: volume top=high, brightness/contrast right=high. */
+    public boolean setSwitch(int control, int position) {
+        if (!owner.isSht308() || !powered || !EstateData.inside(owner)
+            || control < 0 || control > 2 || position < 0 || position > 2) return false;
+        switch (control) {
+            case 0 -> volume = position;
+            case 1 -> brightness = position;
+            case 2 -> contrast = position;
+        }
+        owner.changed();
+        return true;
+    }
+    public void adjust(DeviceNetwork.Action action) {
+        switch (action) {
+            case SHT_VOLUME -> setSwitch(0, (volume + 1) % 3);
+            case SHT_BRIGHTNESS -> setSwitch(1, (brightness + 1) % 3);
+            case SHT_CONTRAST -> setSwitch(2, (contrast + 1) % 3);
+            default -> { }
+        }
     }
     public boolean entranceButton(){
         if(!owner.isSht308()||!powered)return false;

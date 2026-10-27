@@ -18,6 +18,7 @@ public final class DeviceScreen extends AbstractContainerScreen<DeviceMenu> {
     private final Map<DeviceNetwork.Action,List<AbstractWidget>> actions=new EnumMap<>(DeviceNetwork.Action.class);
     private EditBox building,unit,guard,ownGuard,ownBuilding,ownUnit;
     private Button settings,back,save,star,bus,chat;
+    private AbstractWidget draggedShtSlider;
     private String loadedAddress="";
     private ProductDesign design;private boolean settingsMode;private int px,py,pw,ph;
     public DeviceScreen(DeviceMenu menu,Inventory inventory,Component title){super(menu,inventory,title);imageWidth=400;imageHeight=234;}
@@ -41,6 +42,32 @@ public final class DeviceScreen extends AbstractContainerScreen<DeviceMenu> {
         button.setTooltip(Tooltip.create(tr(label)));addRenderableWidget(button);faceControls.add(button);if(action!=null)actions.computeIfAbsent(action,a->new ArrayList<>()).add(button);
     }
     private void hot(String label,int x,int y,int width,int height,DeviceNetwork.Action action){hotspot(label,x,y,width,height,()->send(action),action);}
+    /** Click or drag to a real switch position, rather than cycling a fake button. */
+    private void shtSlider(String label,int x,int y,int width,int height,int control,boolean vertical,DeviceNetwork.Action action){
+        var slider=new AbstractButton(x(x),y(y),w(width),h(height),tr(label)){
+            private int sent=-1;
+            private void position(double mx,double my){
+                double fraction=vertical?(my-getY())/getHeight():(mx-getX())/getWidth();
+                int value=Math.max(0,Math.min(2,(int)Math.floor(fraction*3)));
+                if(vertical)value=2-value;
+                if(value!=sent){sent=value;DeviceNetwork.CHANNEL.sendToServer(new DeviceNetwork.ShtSwitchRequest(menu.containerId,control,value));}
+            }
+            @Override public void onPress(){send(action);}
+            @Override public boolean mouseClicked(double mx,double my,int button){
+                if(button!=0||!active||!visible||!isMouseOver(mx,my))return false;
+                draggedShtSlider=this;sent=-1;position(mx,my);playDownSound(minecraft.getSoundManager());return true;
+            }
+            @Override public boolean mouseDragged(double mx,double my,int button,double dx,double dy){
+                if(button!=0||!active||!visible)return false;position(mx,my);return true;
+            }
+            @Override protected void updateWidgetNarration(net.minecraft.client.gui.narration.NarrationElementOutput output){defaultButtonNarrationText(output);}
+            @Override protected void renderWidget(GuiGraphics g,int mx,int my,float partial){
+                if(isHoveredOrFocused())g.renderOutline(getX(),getY(),getWidth(),getHeight(),0xffb9efff);
+            }
+        };
+        slider.setTooltip(Tooltip.create(tr(label)));addRenderableWidget(slider);faceControls.add(slider);
+        actions.computeIfAbsent(action,a->new ArrayList<>()).add(slider);
+    }
     private void screenButton(String label,int x,int y,int width,int height,DeviceNetwork.Action action){
         var button=new AbstractButton(x(x),y(y),w(width),h(height),tr(label)){
             @Override public void onPress(){send(action);}
@@ -90,9 +117,9 @@ public final class DeviceScreen extends AbstractContainerScreen<DeviceMenu> {
             hot("sht_away",224,178,20,21,DeviceNetwork.Action.SHT_AWAY);
             hot("sht_entrance",222,203,24,26,DeviceNetwork.Action.SHT_ENTRANCE);
             hot("sht_power",65,195,12,34,DeviceNetwork.Action.SHT_POWER);
-            hot("sht_volume",246,58,10,35,DeviceNetwork.Action.SHT_VOLUME);
-            hot("sht_brightness",135,247,35,7,DeviceNetwork.Action.SHT_BRIGHTNESS);
-            hot("sht_contrast",185,247,35,7,DeviceNetwork.Action.SHT_CONTRAST);
+            shtSlider("sht_volume",246,58,10,35,0,true,DeviceNetwork.Action.SHT_VOLUME);
+            shtSlider("sht_brightness",140,247,25,7,1,false,DeviceNetwork.Action.SHT_BRIGHTNESS);
+            shtSlider("sht_contrast",191,247,25,7,2,false,DeviceNetwork.Action.SHT_CONTRAST);
         }
         if(design==ProductDesign.WALLPAD){
             screenButton("monitor",30,135,63,31,DeviceNetwork.Action.MONITOR);screenButton("priority_guard",98,135,63,31,DeviceNetwork.Action.CALL_GUARD);screenButton("home_tab",166,135,63,31,DeviceNetwork.Action.PANEL_HOME);
@@ -145,6 +172,8 @@ public final class DeviceScreen extends AbstractContainerScreen<DeviceMenu> {
     @Override protected void renderBg(GuiGraphics g,float partial,int mx,int my){
         g.fill(leftPos,topPos,leftPos+400,topPos+234,0xee101922);var d=menu.device();if(d==null)return;
         if(settingsMode){g.fill(leftPos+12,topPos+28,leftPos+388,topPos+205,0xff243747);return;}
+        com.mojang.blaze3d.systems.RenderSystem.enableBlend();
+        com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
         var texture=new ResourceLocation(HomeSystems.MODID,"textures/block/"+design.id+(d.offHook()?"_offhook":"")+".png");g.blit(texture,leftPos+px,topPos+py,pw,ph,0,0,256,256,256,256);
         if(design.sx!=design.ex){
             int sx=x(design.sx),sy=y(design.sy),sw=w(design.ex-design.sx),sh=h(design.ey-design.sy);
@@ -163,8 +192,12 @@ public final class DeviceScreen extends AbstractContainerScreen<DeviceMenu> {
             g.fill(x(192+d.sht308().contrast()*9),y(249),x(199+d.sht308().contrast()*9),y(252),0xff50584d);
         }
         if(d.emergencyAlerts()>0)g.drawString(font,Component.translatable("screen.homesystems.sht_alarm_count",d.emergencyAlerts()),leftPos+20,topPos+32,0xff6559,true);
+        // Camera rendering restores its own blend state; transparent logo edges need blending.
+        com.mojang.blaze3d.systems.RenderSystem.enableBlend();
+        com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc();
         // Replaceable logo texture, separate from the product's printed face.
         g.blit(new ResourceLocation(HomeSystems.MODID,"textures/logo/"+design.id+".png"),x(design.logoX()),y(design.logoY()),w(design.logoWidth()),h(design.logoHeight()),0,0,128,16,128,16);
+        com.mojang.blaze3d.systems.RenderSystem.disableBlend();
     }
     @Override protected void renderLabels(GuiGraphics g,int mx,int my){
         g.drawString(font,title,8,7,0xe3edf5,false);var d=menu.device();if(d==null)return;
@@ -175,6 +208,18 @@ public final class DeviceScreen extends AbstractContainerScreen<DeviceMenu> {
         if(design==ProductDesign.INTERPHONE)g.drawString(font,tr(d.offHook()?"handset_down":"handset_up"),8,32,0xabc2d1,false);
     }
     @Override public void render(GuiGraphics g,int x,int y,float partial){renderBackground(g);super.render(g,x,y,partial);renderTooltip(g,x,y);}
+    @Override public boolean mouseClicked(double mx,double my,int button){
+        draggedShtSlider=null;return super.mouseClicked(mx,my,button);
+    }
+    @Override public boolean mouseDragged(double mx,double my,int button,double dx,double dy){
+        // AbstractContainerScreen consumes inventory dragging instead of forwarding to children.
+        if(draggedShtSlider!=null&&button==0)return draggedShtSlider.mouseDragged(mx,my,button,dx,dy);
+        return super.mouseDragged(mx,my,button,dx,dy);
+    }
+    @Override public boolean mouseReleased(double mx,double my,int button){
+        if(draggedShtSlider!=null){draggedShtSlider=null;return true;}
+        return super.mouseReleased(mx,my,button);
+    }
     @Override public boolean keyPressed(int key,int scan,int mods){if(key==256){onClose();return true;}for(var field:fields)if(field.visible&&field.isFocused()&&key==minecraft.options.keyInventory.getKey().getValue())return true;return super.keyPressed(key,scan,mods);}
     @Override public void removed(){camera.close();super.removed();}
 }

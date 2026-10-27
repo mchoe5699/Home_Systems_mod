@@ -27,6 +27,7 @@ public final class ProductRenderer implements BlockEntityRenderer<DeviceBlockEnt
         if(d.getBlockState().getValue(DeviceBlock.MODEL)!=0)return;
         pose.pushPose();pose.translate(.5,0,.5);float angle=switch(d.getBlockState().getValue(DeviceBlock.FACING)){case EAST->-90;case SOUTH->-180;case WEST->-270;default->0;};pose.mulPose(Axis.YP.rotationDegrees(angle));pose.translate(-.5,0,-.5);
         if(design.desktop){pose.translate(.5,1.2/16.,10/16.);pose.mulPose(Axis.XP.rotationDegrees(22.5f));pose.translate(-.5,-1.2/16.,-10/16.);}
+        if(d.isSht308())Sht308ReceiverRenderer.render(d,pose,buffers,light);
         pose.translate(design.x1/16.,design.y1/16.,design.faceZ()/16.-.002);pose.scale(-design.width()/4096f,-design.height()/4096f,1/4096f);
         if(design.sx!=design.ex){
             var texture=WorldCameras.texture(d);int x=design.sx,y=design.sy,w=design.ex-x,h=design.ey-y;

@@ -23,6 +23,17 @@ public final class Sht308GameTests {
         h.assertTrue((ScreenTone.monochrome(0xff808080,2,1)&255)>(ScreenTone.monochrome(0xff808080,0,1)&255),"Brightness controls do not affect pixels");
         cleanup(d,camera);h.succeed();
     }
+    @GameTest(template="empty",batch="sht308")
+    public static void physicalSlidersSelectAbsolutePositionsAndPersist(GameTestHelper h){
+        var d=place(h,1,1,HomeSystems.SHT_308.get());
+        h.assertTrue(d.sht308().setSwitch(0,0)&&d.sht308().setSwitch(1,2)&&d.sht308().setSwitch(2,0),"Slider endpoints rejected");
+        h.assertTrue(d.sht308().volume()==0&&d.sht308().brightness()==2&&d.sht308().contrast()==0,"Wrong absolute switch positions");
+        h.assertTrue(!d.sht308().setSwitch(-1,1)&&!d.sht308().setSwitch(3,1)&&!d.sht308().setSwitch(0,-1)&&!d.sht308().setSwitch(1,3),"Malformed switch value accepted");
+        var copy=new DeviceBlockEntity(d.getBlockPos(),d.getBlockState());copy.load(d.saveWithoutMetadata());
+        h.assertTrue(copy.sht308().volume()==0&&copy.sht308().brightness()==2&&copy.sht308().contrast()==0,"Switch positions lost after save");
+        d.sht308().togglePower();h.assertTrue(!d.sht308().setSwitch(1,0)&&d.sht308().brightness()==2,"Unpowered slider changed an operating setting");
+        cleanup(d);h.succeed();
+    }
     @GameTest(template="empty",batch="sht308",timeoutTicks=340)
     public static void manualMonitorExpiresAt15SecondsAndReceiverStartsEntranceChat(GameTestHelper h){
         var d=place(h,1,1,HomeSystems.SHT_308.get());var camera=place(h,3,1,HomeSystems.DOOR_CAMERA.get());camera.links().linkHome(d);

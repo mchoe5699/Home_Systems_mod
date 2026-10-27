@@ -10,7 +10,7 @@ import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class DeviceNetwork {
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
-        new ResourceLocation(HomeSystems.MODID, "devices"), () -> "8", "8"::equals, "8"::equals);
+        new ResourceLocation(HomeSystems.MODID, "devices"), () -> "9", "9"::equals, "9"::equals);
     public enum Action { CALL, CALL_GUARD, CALL_OTHER_GUARD, ANSWER, END, UNLOCK, HOME_LIGHTS, HOME_DOOR, HOME_GAS, HOME_OTHER, GUARD_PRESENT, GUARD_AWAY, GUARD_OUT, HANDSET, MONITOR, PANEL_HOME, TYPE_STAR, TYPE_BUS, SHT_EMERGENCY, SHT_AWAY, SHT_ENTRANCE, SHT_POWER, SHT_VOLUME, SHT_BRIGHTNESS, SHT_CONTRAST }
     public record Request(int containerId, Action action, int building, int unit, int guard) {
         public static void encode(Request request, FriendlyByteBuf buffer) {
@@ -42,7 +42,32 @@ public final class DeviceNetwork {
             });context.setPacketHandled(true);
         }
     }
+    /** Absolute three-position slider values; validate both menu access and ownership. */
+    public record ShtSwitchRequest(int containerId, int control, int position) {
+        static void encode(ShtSwitchRequest r, FriendlyByteBuf b) {
+            b.writeVarInt(r.containerId).writeVarInt(r.control).writeVarInt(r.position);
+        }
+        static ShtSwitchRequest decode(FriendlyByteBuf b) {
+            return new ShtSwitchRequest(b.readVarInt(), b.readVarInt(), b.readVarInt());
+        }
+        static void handle(ShtSwitchRequest request, Supplier<NetworkEvent.Context> supplier) {
+            var context = supplier.get();
+            context.enqueueWork(() -> {
+                var player = context.getSender();
+                if (player == null || !(player.containerMenu instanceof DeviceMenu menu)
+                    || menu.containerId != request.containerId || !menu.stillValid(player)) return;
+                var device = menu.device();
+                if (!device.isSht308() || !device.canConfigure(player)
+                    || !EstateData.playerMayUse(player, device)) return;
+                device.sht308().setSwitch(request.control, request.position);
+            });
+            context.setPacketHandled(true);
+        }
+    }
     public static void register() {
+        CHANNEL.messageBuilder(ShtSwitchRequest.class, 6, NetworkDirection.PLAY_TO_SERVER)
+            .encoder(ShtSwitchRequest::encode).decoder(ShtSwitchRequest::decode)
+            .consumerNetworkThread(ShtSwitchRequest::handle).add();
         CHANNEL.messageBuilder(WorldVideoFrame.class,5,NetworkDirection.PLAY_TO_CLIENT).encoder(WorldVideoFrame::encode).decoder(WorldVideoFrame::decode).consumerNetworkThread(WorldVideoFrame::handle).add();
         CHANNEL.messageBuilder(Request.class, 0, NetworkDirection.PLAY_TO_SERVER)
             .encoder(Request::encode).decoder(Request::decode).consumerNetworkThread(Request::handle).add();
