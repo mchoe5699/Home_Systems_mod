@@ -56,7 +56,7 @@ public class DeviceBlock extends BaseEntityBlock {
     @Override public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         var d=ProductDesign.of(state);
         double x0=d.x0,y0=d.y0,z0=d.z0,x1=d.x1,y1=d.y1,z1=d.z1;
-        if(d.desktop){y0=0;z0=3;z1=16;}
+        if(d.desktop){y0=0;z0=8.5;z1=16;}
         return switch(state.getValue(FACING)){
             case EAST->Block.box(16-z1,y0,x0,16-z0,y1,x1);
             case SOUTH->Block.box(16-x1,y0,16-z1,16-x0,y1,16-z0);

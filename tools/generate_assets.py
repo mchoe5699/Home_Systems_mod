@@ -399,3 +399,5 @@ write(DATA/'minecraft/tags/blocks/mineable/pickaxe.json',{'replace':False,'value
 
 ko['screen.homesystems.sht_alarm_count']='세대 비상 경보 %s건';en['screen.homesystems.sht_alarm_count']='Household emergency alarms: %s'
 write(ASSETS/'lang/ko_kr.json',ko);write(ASSETS/'lang/en_us.json',en)
+
+runpy.run_path(str(Path(__file__).with_name('smooth_assets.py')))

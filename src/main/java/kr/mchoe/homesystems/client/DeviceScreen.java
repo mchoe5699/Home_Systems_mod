@@ -103,7 +103,8 @@ public final class DeviceScreen extends AbstractContainerScreen<DeviceMenu> {
                 int kx=design==ProductDesign.LOBBY?151+col*24:77+col*24,ky=design==ProductDesign.LOBBY?88+row*24:143+row*20;
                 hotspot("keypad",kx,ky,22,20,()->{EditBox target=building.isFocused()?building:unit;if(key.equals("*")){String v=target.getValue();target.setValue(v.isEmpty()?v:v.substring(0,v.length()-1));}else if(key.equals("#")){if(building.isFocused()){building.setFocused(false);unit.setFocused(true);}else send(DeviceNetwork.Action.CALL);}else if(target.getValue().length()<4)target.setValue(target.getValue()+key);},null);
             }
-            hot("call_home",design==ProductDesign.LOBBY?181:170,design==ProductDesign.LOBBY?187:164,47,54,DeviceNetwork.Action.CALL);
+            if(design==ProductDesign.LOBBY)hot("call_home",181,187,47,54,DeviceNetwork.Action.CALL);
+            else hot("unlock",171,166,50,50,DeviceNetwork.Action.UNLOCK);
             if(design==ProductDesign.LOBBY){screenButton("priority_guard",26,168,87,24,DeviceNetwork.Action.CALL_GUARD);screenButton("end",26,198,87,24,DeviceNetwork.Action.END);}
             else {screenButton("presence_0",79,96,49,23,DeviceNetwork.Action.GUARD_PRESENT);screenButton("presence_1",132,96,49,23,DeviceNetwork.Action.GUARD_AWAY);screenButton("presence_2",185,96,49,23,DeviceNetwork.Action.GUARD_OUT);}
         }
@@ -128,7 +129,6 @@ public final class DeviceScreen extends AbstractContainerScreen<DeviceMenu> {
             for(int i=0;i<4;i++)screenButton("channel_"+new String[]{"lights","door","gas","other"}[i],30+(i%2)*103,55+(i/2)*44,92,34,aa[i]);
         }
         if(design==ProductDesign.CAMERA||design==ProductDesign.DOOR){screenButton("ring_doorbell",50,180,156,35,DeviceNetwork.Action.CALL);}
-        if(design==ProductDesign.GUARD){screenButton("unlock",150,219,84,25,DeviceNetwork.Action.UNLOCK);}
         loadSettings();if(d!=null&&d.addressConfigured()){building.setValue(d.buildingNumber()==9999?"":Integer.toString(d.buildingNumber()));unit.setValue(Integer.toString(d.unitNumber()));}
         for(var field:fields)field.setResponder(v->updateControls());updateControls();
     }
@@ -187,7 +187,7 @@ public final class DeviceScreen extends AbstractContainerScreen<DeviceMenu> {
             for(int i=0;i<3;i++){int color=d.sht308().lampColor(i);if(color!=0){g.setColor((color>>16&255)/255f,(color>>8&255)/255f,(color&255)/255f,1);g.blit(new ResourceLocation(HomeSystems.MODID,"textures/block/panel_lamp.png"),x(228),y(137+i*22),w(11),h(11),0,0,32,32,32,32);g.setColor(1,1,1,1);}}
             g.fill(x(249),y(62+(2-d.sht308().volume())*8),x(252),y(70+(2-d.sht308().volume())*8),0xff50584d);
             g.fill(x(69),y(d.operational()?200:214),x(72),y(d.operational()?209:223),0xff50584d);
-            if(d.operational())g.fill(x(223),y(32),x(226),y(35),0xff7fd993);
+            if(d.operational())g.fill(x(223),y(32),x(226),y(35),0xffe75250);
             g.fill(x(142+d.sht308().brightness()*9),y(249),x(149+d.sht308().brightness()*9),y(252),0xff50584d);
             g.fill(x(192+d.sht308().contrast()*9),y(249),x(199+d.sht308().contrast()*9),y(252),0xff50584d);
         }

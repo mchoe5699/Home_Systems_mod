@@ -10,15 +10,26 @@ try:
 except OSError:
  font=small=ImageFont.load_default()
 D={
-'lobby_phone':(2.6,1.5,13.5,13.4,13.45,16,'#a9aeb2','#15191d'),
-'video_phone':(.5,3.5,13.6,15.5,12.7,16,'#bfc3c4','#283c64'),
-'interphone':(6.1,1,12.5,9.9,14.3,16,'#e7e7e1','#ddddda'),
-'wallpad':(.5,3,14.5,15.5,13.45,16,'#42464a','#101419'),
-'guard_station':(1.5,1.2,10,14.5,13.5,12.5,'#595c61','#25282e')}
+'lobby_phone':(2.6,1.5,15.159,13.4,13.45,16,'#a9aeb2','#15191d'),
+'video_phone':(.5,3.5,15.6,15.5,12.7,16,'#bfc3c4','#283c64'),
+'interphone':(6.1,1,14.4,9.9,14.3,16,'#e7e7e1','#ddddda'),
+'wallpad':(.5,3,15.375,15.5,13.45,16,'#42464a','#101419'),
+'guard_station':(1.5,1.2,10,14.5,13.5,11.15,'#595c61','#25282e')}
 def write(p,x):p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps(x,ensure_ascii=False,indent=2)+'\n')
 def text(d,xy,t,size=font,fill='#e0e6ea'):d.text(xy,t,font=size,fill=fill,anchor='mm')
+class HighResDraw:
+ def __init__(self,image):self.draw=ImageDraw.Draw(image)
+ def __getattr__(self,name):
+  def draw(coords,*args,**kwargs):
+   def scaled(v):return tuple(scaled(x) for x in v) if isinstance(v,(tuple,list)) else v*4
+   if 'font' in kwargs:kwargs['font']=kwargs['font'].font_variant(size=kwargs['font'].size*4)
+   for key in ['radius','width']:
+    if key in kwargs:kwargs[key]*=4
+   if name in ['rectangle','rounded_rectangle','ellipse','line']:kwargs.setdefault('width',4)
+   return getattr(self.draw,name)(scaled(coords),*args,**kwargs)
+  return draw
 def front(name,off):
- *_,body,face=D[name];im=Image.new('RGB',(256,256),body);d=ImageDraw.Draw(im)
+ *_,body,face=D[name];im=Image.new('RGB',(1024,1024),body);d=HighResDraw(im)
  for i in range(6):d.rounded_rectangle((i,i,255-i,255-i),radius=max(2,12-i),outline=['#33373b','#8e969c','#e6e8e9','#b1b7ba','#737a7e','#4b5054'][i])
  d.rounded_rectangle((10,9,245,237),radius=4,fill=face)
  if name=='lobby_phone':
@@ -37,7 +48,7 @@ def front(name,off):
   for row in range(4):
    for col in range(3):
     x,y=86+col*24,151+row*20;d.ellipse((x-8,y-8,x+8,y+8),fill='#171b20',outline='#69727b');text(d,(x,y),str(row*3+col+1) if row<3 else ['*','0','#'][col],small)
-  d.ellipse((171,166,221,216),fill='#9b9ea2',outline='#dfe1e4',width=2);d.ellipse((183,178,209,204),fill='#555a61');text(d,(196,191),'OK',small)
+  d.ellipse((171,166,221,216),fill='#9b9ea2',outline='#dfe1e4',width=2);d.ellipse((183,178,209,204),fill='#555a61');text(d,(196,157),'OPEN',small)
  else:
   d.rectangle((60,15,196,235),fill='#b6b8b4',outline='#f4f4ef')
   d.rounded_rectangle((85,188,171,208),radius=7,fill='#e8e8e3',outline='#868b89');text(d,(128,198),'GUARD',small,fill='#636a67')
@@ -49,14 +60,14 @@ def front(name,off):
   d.rounded_rectangle((x0,y0,x1,y1),radius=8,fill='#747b7c' if name=='interphone' else '#171b20')
   if off:dx,dy=-8,-10
   else:dx,dy=0,0
-  hd=ImageDraw.Draw(im);fill='#e8e9e5' if name=='interphone' else '#c7cace' if name=='video_phone' else '#3e4148'
+  hd=HighResDraw(im);fill='#e8e9e5' if name=='interphone' else '#c7cace' if name=='video_phone' else '#3e4148'
   # GUI handset preview; the block base uses a separate cradle-only image below.
   if off is not None:
    hd.rounded_rectangle((x0+dx,y0+dy,x1+dx,y1+dy),radius=12,fill=fill,outline='#8d9498',width=2)
    for yy in [y0+16,y1-24]:
     for xx in range(int(x0+8+dx),int(x1-5+dx),4):hd.ellipse((xx,yy+dy,xx+1,yy+dy+1),fill='#62696c')
 
- return im
+ return im.resize((512,512),Image.Resampling.LANCZOS)
 for name,v in D.items():
  x0,y0,z0,x1,y1,z1,body,face=v
  for off,label in [(False,''),(True,'_offhook'),(None,'_base')]:front(name,off).save(A/f'textures/block/{name}{label}.png')

@@ -26,8 +26,8 @@ public final class ProductRenderer implements BlockEntityRenderer<DeviceBlockEnt
         // A registered sibling's own renderer/assets must define its front layout.
         if(d.getBlockState().getValue(DeviceBlock.MODEL)!=0)return;
         pose.pushPose();pose.translate(.5,0,.5);float angle=switch(d.getBlockState().getValue(DeviceBlock.FACING)){case EAST->-90;case SOUTH->-180;case WEST->-270;default->0;};pose.mulPose(Axis.YP.rotationDegrees(angle));pose.translate(-.5,0,-.5);
-        if(design.desktop){pose.translate(.5,1.2/16.,10/16.);pose.mulPose(Axis.XP.rotationDegrees(22.5f));pose.translate(-.5,-1.2/16.,-10/16.);}
-        if(d.isSht308())Sht308ReceiverRenderer.render(d,pose,buffers,light);
+        SmoothProducts.render(design,d.offHook(),pose,buffers,light);
+        if(design.desktop)SmoothProducts.tilt(pose);
         pose.translate(design.x1/16.,design.y1/16.,design.faceZ()/16.-.002);pose.scale(-design.width()/4096f,-design.height()/4096f,1/4096f);
         if(design.sx!=design.ex){
             var texture=WorldCameras.texture(d);int x=design.sx,y=design.sy,w=design.ex-x,h=design.ey-y;
@@ -45,7 +45,7 @@ public final class ProductRenderer implements BlockEntityRenderer<DeviceBlockEnt
             pose.popPose();
             quad(pose,buffers,WHITE,249,62+(2-d.sht308().volume())*8,3,8,0x50584d,true);
             quad(pose,buffers,WHITE,69,d.operational()?200:214,3,9,0x50584d,true);
-            if(d.operational())quad(pose,buffers,WHITE,223,32,3,3,0x7fd993,true);
+            if(d.operational())quad(pose,buffers,WHITE,223,32,3,3,0xe75250,true);
             quad(pose,buffers,WHITE,142+d.sht308().brightness()*9,249,7,3,0x50584d,true);
             quad(pose,buffers,WHITE,192+d.sht308().contrast()*9,249,7,3,0x50584d,true);
         }
@@ -57,5 +57,5 @@ public final class ProductRenderer implements BlockEntityRenderer<DeviceBlockEnt
         quad(pose,buffers,new ResourceLocation(HomeSystems.MODID,"textures/logo/"+design.id+".png"),design.logoX(),design.logoY(),design.logoWidth(),design.logoHeight(),0xffffff,true);
         pose.popPose();
     }
-    @Override public int getViewDistance(){return 24;}
+    @Override public int getViewDistance(){return 64;}
 }

@@ -70,7 +70,7 @@ public final class HomeSystems {
         RegistryObject<Block> block = BLOCKS.register(id, () -> new DeviceBlock(BlockBehaviour.Properties.of()
             .mapColor(MapColor.METAL).strength(2.5F).sound(net.minecraft.world.level.block.SoundType.METAL)
             .noOcclusion().lightLevel(state -> state.getValue(DeviceBlock.POWERED) ? 7 : 2)));
-        ITEMS.register(id, () -> new BlockItem(block.get(), new Item.Properties()));
+        ITEMS.register(id, () -> new DeviceItem(block.get(), new Item.Properties()));
         return block;
     }
 

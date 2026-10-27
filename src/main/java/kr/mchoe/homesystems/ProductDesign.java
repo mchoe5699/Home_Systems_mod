@@ -4,11 +4,11 @@ import net.minecraft.world.level.block.state.BlockState;
 
 /** Shared normalized front-panel coordinates for the block renderer and its actual clickable face. */
 public enum ProductDesign {
-    LOBBY("lobby_phone",2.6f,1.5f,13.5f,13.4f,13.45f,16,30,48,100,153,false,false),
-    VIDEO("video_phone",.5f,3.5f,13.6f,15.5f,12.7f,16,78,48,225,174,true,false),
-    INTERPHONE("interphone",6.1f,1,12.5f,9.9f,14.3f,16,0,0,0,0,true,false),
-    WALLPAD("wallpad",.5f,3,14.5f,15.5f,13.45f,16,18,20,238,220,false,false),
-    GUARD("guard_station",1.5f,1.2f,10,14.5f,13.5f,12.5f,76,20,236,128,true,true),
+    LOBBY("lobby_phone",2.6f,1.5f,15.159f,13.4f,13.45f,16,30,48,100,153,false,false),
+    VIDEO("video_phone",.5f,3.5f,15.6f,15.5f,12.7f,16,78,48,225,174,true,false),
+    INTERPHONE("interphone",6.1f,1,14.4f,9.9f,14.3f,16,0,0,0,0,true,false),
+    WALLPAD("wallpad",.5f,3,15.375f,15.5f,13.45f,16,18,20,238,220,false,false),
+    GUARD("guard_station",1.5f,1.2f,10,14.5f,13.5f,11.15f,76,20,236,128,true,true),
     CAMERA("door_camera",2,1,13,14,15,16,0,0,0,0,false,false),
     DOOR("door_phone",2,1,13,14,15,16,0,0,0,0,false,false),
     SHT308("sht_308",1,1,10.5f,15,14.5f,16,100,28,193,101,true,false);

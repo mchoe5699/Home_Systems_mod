@@ -1,16 +1,22 @@
-# Home Systems · 홈시스템 1.8.0
+# Home Systems · 홈시스템 1.9.0
 
 **Minecraft Java 1.20.1 / Forge 47.4.0 이상(47.x) / Java 17**용 아파트 홈시스템 모드입니다.
 싱글플레이와 Forge 전용 서버를 지원하며, 별도 라이브러리 모드는 필요하지 않습니다.
 
 ## 온라인 다운로드
 
-[**Home Systems 1.8.0 JAR 다운로드**](https://github.com/mchoe5699/Home_Systems_mod/raw/refs/heads/main/releases/1.8.0/homesystems-1.20.1-forge-1.8.0.jar)
+[**Home Systems 1.9.0 JAR 다운로드**](https://github.com/mchoe5699/Home_Systems_mod/raw/refs/heads/main/releases/1.9.0/homesystems-1.20.1-forge-1.9.0.jar)
 
 Minecraft Java 1.20.1 + Forge 47.4.0 이상(47.x), Java 17용입니다. 서버와 클라이언트에 같은 버전을 설치하세요.
-[SHA-256 체크섬](releases/1.8.0/homesystems-1.20.1-forge-1.8.0.jar.sha256)으로 파일을 확인할 수 있습니다.
+[SHA-256 체크섬](releases/1.9.0/homesystems-1.20.1-forge-1.9.0.jar.sha256)으로 파일을 확인할 수 있습니다.
 
 [새 기본 기기 5종과 실제 게임 화면 보기](docs/product-references.md)
+
+## 기기 8종의 외관 곡면 처리
+
+본체·수화기·물리 버튼을 겹친 상자 대신 이어진 곡면으로 렌더링합니다. 설치된 기기와 아이템에 같은 형상을 사용하며, 전면 이미지의 계단 현상도 정리했습니다. 기본 기기는 공식 제원의 두께 비율을 다시 반영했습니다.
+
+[**변경 사항·두께 기준·실제 게임 화면**](docs/smooth-products.md)
 
 ## 삼성 SHT-308 재제작
 
@@ -23,7 +29,7 @@ Minecraft Java 1.20.1 + Forge 47.4.0 이상(47.x), Java 17용입니다. 서버�
 ## 설치 및 업데이트
 
 1. Minecraft **1.20.1 Forge**를 설치합니다.
-2. 이전 홈시스템 JAR를 제거하고 **`homesystems-1.20.1-forge-1.8.0.jar`**를 `mods` 폴더에 넣습니다.
+2. 이전 홈시스템 JAR를 제거하고 **`homesystems-1.20.1-forge-1.9.0.jar`**를 `mods` 폴더에 넣습니다.
 3. 멀티플레이에서는 **서버와 모든 클라이언트에 같은 버전**을 설치합니다.
 4. 크리에이티브 **홈시스템** 탭 또는 서바이벌 조합으로 기기를 구합니다.
 5. **단지 대시보드**로 기기를 포함하는 구획을 먼저 만듭니다. 단지 밖에서는 기기가 작동하지 않습니다.
@@ -226,7 +232,7 @@ JDK 17을 설치하고 `JAVA_HOME`을 설정합니다. 체크섬이 고정된 Gr
 ./gradlew runClient
 ```
 
-Windows에서는 `gradlew.bat`를 사용합니다. 배포 파일은 **`build/libs/homesystems-1.20.1-forge-1.8.0.jar`**이며 Forge `reobfJar`를 마친 JAR를 배포합니다.
+Windows에서는 `gradlew.bat`를 사용합니다. 배포 파일은 **`build/libs/homesystems-1.20.1-forge-1.9.0.jar`**이며 Forge `reobfJar`를 마친 JAR를 배포합니다.
 GameTest는 매 실행 시 테스트 전용 `run-gametest/world`를 초기화합니다. 일반 서버·클라이언트 월드는 건드리지 않습니다.
 GameTest는 기존 단지·홈 네트워크·호출·채팅·영상 테스트에 더해, 주소 경계값·저장·관할 일치·9999동·다중 세대 호출·첫 응답·거절·기기 제거·도어카메라/도어폰 구분·경비실 상태·부재 우회·우회 금지를 검사합니다.
 도어 링크·홈 링크 아이템의 실제 선택, 위·아래 문 선택, 양쪽 문 블록 열림·자동 닫기, 링크 저장·해제·권한·교체된 기기 거부, 선택한 내부 기기에만 호출하는 동작도 검사합니다.
