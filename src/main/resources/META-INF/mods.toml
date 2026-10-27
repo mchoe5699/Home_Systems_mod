@@ -1,0 +1,27 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+
+[[mods]]
+modId="homesystems"
+version="1.5.0"
+displayName="Home Systems | 홈시스템"
+authors="mchoe5699"
+description='''
+Apartment lobby phones, video phones, interphones, wallpads and guard stations.
+호수 호출, 응답, 문자 인터폰과 레드스톤 문 열림 기능을 제공합니다.
+'''
+
+[[dependencies.homesystems]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.0,48)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.homesystems]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.20.2)"
+ordering="NONE"
+side="BOTH"

@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "powered=false": {
+      "model": "homesystems:block/door_relay"
+    },
+    "powered=true": {
+      "model": "homesystems:block/door_relay_on"
+    }
+  }
+}

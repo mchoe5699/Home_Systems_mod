@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "powered=false": {
+      "model": "homesystems:block/utility_relay"
+    },
+    "powered=true": {
+      "model": "homesystems:block/utility_relay_on"
+    }
+  }
+}

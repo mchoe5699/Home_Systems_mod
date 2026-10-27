@@ -1,0 +1,16 @@
+{
+  "replace": false,
+  "values": [
+    "homesystems:lobby_phone",
+    "homesystems:video_phone",
+    "homesystems:interphone",
+    "homesystems:wallpad",
+    "homesystems:guard_station",
+    "homesystems:door_camera",
+    "homesystems:door_phone",
+    "homesystems:light_relay",
+    "homesystems:door_relay",
+    "homesystems:gas_relay",
+    "homesystems:utility_relay"
+  ]
+}

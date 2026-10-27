@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "homesystems:block/video_phone"
+    },
+    "facing=east": {
+      "model": "homesystems:block/video_phone",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "homesystems:block/video_phone",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "homesystems:block/video_phone",
+      "y": 270
+    }
+  }
+}

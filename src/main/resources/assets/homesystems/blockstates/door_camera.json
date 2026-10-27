@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "homesystems:block/door_camera"
+    },
+    "facing=east": {
+      "model": "homesystems:block/door_camera",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "homesystems:block/door_camera",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "homesystems:block/door_camera",
+      "y": 270
+    }
+  }
+}

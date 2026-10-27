@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "powered=false": {
+      "model": "homesystems:block/gas_relay"
+    },
+    "powered=true": {
+      "model": "homesystems:block/gas_relay_on"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "homesystems:block/wallpad"
+    },
+    "facing=east": {
+      "model": "homesystems:block/wallpad",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "homesystems:block/wallpad",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "homesystems:block/wallpad",
+      "y": 270
+    }
+  }
+}

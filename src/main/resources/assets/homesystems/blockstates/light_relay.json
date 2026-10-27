@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "powered=false": {
+      "model": "homesystems:block/light_relay"
+    },
+    "powered=true": {
+      "model": "homesystems:block/light_relay_on"
+    }
+  }
+}

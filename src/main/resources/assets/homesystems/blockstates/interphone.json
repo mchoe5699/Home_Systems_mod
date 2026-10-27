@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "homesystems:block/interphone"
+    },
+    "facing=east": {
+      "model": "homesystems:block/interphone",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "homesystems:block/interphone",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "homesystems:block/interphone",
+      "y": 270
+    }
+  }
+}
