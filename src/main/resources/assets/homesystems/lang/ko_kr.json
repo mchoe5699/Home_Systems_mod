@@ -175,5 +175,16 @@
   "screen.homesystems.panel_guard": "경비실",
   "screen.homesystems.panel_home": "홈 제어",
   "screen.homesystems.panel_building": "동",
-  "screen.homesystems.panel_unit": "호"
+  "screen.homesystems.panel_unit": "호",
+  "screen.homesystems.sht_emergency": "비상 경보 켜기 / 해제",
+  "screen.homesystems.sht_away": "외출 설정 / 해제",
+  "screen.homesystems.sht_entrance": "현관 · 확인/통화 연장/공동현관 문열기",
+  "screen.homesystems.sht_power": "측면 전원 스위치",
+  "screen.homesystems.sht_volume": "호출음량 소·중·대 전환",
+  "screen.homesystems.sht_brightness": "하단 밝기 소·중·대 전환",
+  "screen.homesystems.sht_contrast": "하단 명암 소·중·대 전환",
+  "block.homesystems.sht_308": "삼성 SHT-308 비디오폰",
+  "message.homesystems.sht_lift_receiver": "[SHT-308] 먼저 수화기를 들어 주세요.",
+  "message.homesystems.sht_emergency_report": "[비상 경보] %s동 %s호 SHT-308에서 비상이 발생했습니다.",
+  "screen.homesystems.sht_alarm_count": "세대 비상 경보 %s건"
 }

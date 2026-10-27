@@ -80,9 +80,20 @@ public final class DeviceScreen extends AbstractContainerScreen<DeviceMenu> {
             if(design==ProductDesign.LOBBY){screenButton("priority_guard",26,168,87,24,DeviceNetwork.Action.CALL_GUARD);screenButton("end",26,198,87,24,DeviceNetwork.Action.END);}
             else {screenButton("presence_0",79,96,49,23,DeviceNetwork.Action.GUARD_PRESENT);screenButton("presence_1",132,96,49,23,DeviceNetwork.Action.GUARD_AWAY);screenButton("presence_2",185,96,49,23,DeviceNetwork.Action.GUARD_OUT);}
         }
-        if(design.handset){hot("handset",design==ProductDesign.INTERPHONE?50:10,8,design==ProductDesign.INTERPHONE?151:48,design==ProductDesign.INTERPHONE?175:227,DeviceNetwork.Action.HANDSET);}
+        if(design==ProductDesign.SHT308){hot("handset",0,0,60,250,DeviceNetwork.Action.HANDSET);hot("handset",-65,0,60,250,DeviceNetwork.Action.HANDSET);}
+        else if(design.handset){hot("handset",design==ProductDesign.INTERPHONE?50:10,8,design==ProductDesign.INTERPHONE?151:48,design==ProductDesign.INTERPHONE?175:227,DeviceNetwork.Action.HANDSET);}
         if(design==ProductDesign.INTERPHONE){hot("priority_guard",79,184,100,24,DeviceNetwork.Action.CALL_GUARD);hot("unlock",79,211,100,28,DeviceNetwork.Action.UNLOCK);}
         if(design==ProductDesign.VIDEO){hot("monitor",85,187,27,36,DeviceNetwork.Action.MONITOR);hot("priority_guard",126,187,27,36,DeviceNetwork.Action.CALL_GUARD);hot("unlock",167,187,27,36,DeviceNetwork.Action.UNLOCK);hotspot("address_settings",208,187,27,36,()->{settingsMode=true;loadSettings();updateControls();},null);}
+        if(design==ProductDesign.SHT308){
+            hot("sht_emergency",224,134,20,21,DeviceNetwork.Action.SHT_EMERGENCY);
+            hot("priority_guard",224,156,20,21,DeviceNetwork.Action.CALL_GUARD);
+            hot("sht_away",224,178,20,21,DeviceNetwork.Action.SHT_AWAY);
+            hot("sht_entrance",222,203,24,26,DeviceNetwork.Action.SHT_ENTRANCE);
+            hot("sht_power",65,195,12,34,DeviceNetwork.Action.SHT_POWER);
+            hot("sht_volume",246,58,10,35,DeviceNetwork.Action.SHT_VOLUME);
+            hot("sht_brightness",135,247,35,7,DeviceNetwork.Action.SHT_BRIGHTNESS);
+            hot("sht_contrast",185,247,35,7,DeviceNetwork.Action.SHT_CONTRAST);
+        }
         if(design==ProductDesign.WALLPAD){
             screenButton("monitor",30,135,63,31,DeviceNetwork.Action.MONITOR);screenButton("priority_guard",98,135,63,31,DeviceNetwork.Action.CALL_GUARD);screenButton("home_tab",166,135,63,31,DeviceNetwork.Action.PANEL_HOME);
             screenButton("answer",30,174,63,31,DeviceNetwork.Action.ANSWER);screenButton("unlock",98,174,63,31,DeviceNetwork.Action.UNLOCK);screenButton("end",166,174,63,31,DeviceNetwork.Action.END);
@@ -103,7 +114,7 @@ public final class DeviceScreen extends AbstractContainerScreen<DeviceMenu> {
         chat.active=d.state()==DeviceBlockEntity.CONNECTED;settings.visible=!settingsMode;settings.active=owner&&idle;back.visible=settingsMode;ownBuilding.visible=ownUnit.visible=settingsMode&&design!=ProductDesign.GUARD;
         boolean dialing=(design==ProductDesign.LOBBY||design==ProductDesign.GUARD)&&idle;
         building.visible=unit.visible=!settingsMode&&dialing;save.active=owner&&idle&&DeviceRouting.valid(value(ownGuard))&&(design==ProductDesign.GUARD||DeviceRouting.valid(value(ownBuilding))&&DeviceRouting.valid(value(ownUnit)));
-        star.active=owner&&idle&&d.communicationType()!=0;bus.active=owner&&idle&&d.communicationType()!=1;guard.visible=settingsMode&&design!=ProductDesign.GUARD;
+        star.active=owner&&idle&&!d.isSht308()&&d.communicationType()!=0;bus.active=owner&&idle&&d.communicationType()!=1;guard.visible=settingsMode&&design!=ProductDesign.GUARD;
         for(var a:actions.entrySet())for(var widget:a.getValue()){
             boolean active=switch(a.getKey()){
                 case CALL->idle&&d.addressConfigured()&&(design!=ProductDesign.GUARD||d.guardPresence()==DeviceBlockEntity.GUARD_PRESENT)&&(DeviceRouting.door(d)||DeviceRouting.valid(value(building))&&DeviceRouting.valid(value(unit)));
@@ -120,6 +131,14 @@ public final class DeviceScreen extends AbstractContainerScreen<DeviceMenu> {
             if(a.getKey()==DeviceNetwork.Action.CALL_OTHER_GUARD)widget.visible=settingsMode&&design!=ProductDesign.GUARD;
             if(a.getKey().ordinal()>=DeviceNetwork.Action.HOME_LIGHTS.ordinal()&&a.getKey().ordinal()<=DeviceNetwork.Action.HOME_OTHER.ordinal())widget.visible=!settingsMode&&d.panelPage()==1;
         }
+        if(d.isSht308()){
+            var receivers=actions.get(DeviceNetwork.Action.HANDSET);if(receivers!=null&&receivers.size()>1)receivers.get(1).visible&=d.offHook();
+            for(var entry:actions.entrySet())for(var widget:entry.getValue()){
+                if(entry.getKey()==DeviceNetwork.Action.CALL_GUARD)widget.active&=d.offHook()&&d.operational();
+                if(!d.operational()&&entry.getKey()!=DeviceNetwork.Action.HANDSET&&entry.getKey()!=DeviceNetwork.Action.SHT_POWER&&entry.getKey()!=DeviceNetwork.Action.CALL_OTHER_GUARD)widget.active=false;
+            }
+        }
+        camera.tone(d.monochrome(),d.isSht308()?d.sht308().brightness():1,d.isSht308()?d.sht308().contrast():1);
         if(!DeviceVideo.canView(d))camera.clear();
     }
     @Override protected void containerTick(){super.containerTick();fields.forEach(EditBox::tick);updateControls();}
@@ -129,13 +148,23 @@ public final class DeviceScreen extends AbstractContainerScreen<DeviceMenu> {
         var texture=new ResourceLocation(HomeSystems.MODID,"textures/block/"+design.id+(d.offHook()?"_offhook":"")+".png");g.blit(texture,leftPos+px,topPos+py,pw,ph,0,0,256,256,256,256);
         if(design.sx!=design.ex){
             int sx=x(design.sx),sy=y(design.sy),sw=w(design.ex-design.sx),sh=h(design.ey-design.sy);
-            g.fill(sx,sy,sx+sw,sy+sh,0xff0a1821);
+            g.fill(sx,sy,sx+sw,sy+sh,d.isSht308()?0xff302f35:0xff0a1821);
             if(DeviceVideo.canView(d)&&camera.hasFrame())camera.render(g,sx,sy,sw,sh);
             else if(design==ProductDesign.WALLPAD){g.drawString(font,Component.literal(String.format("%02d:%02d",(d.getLevel().getDayTime()/1000+6)%24,d.getLevel().getDayTime()%1000*60/1000)),sx+8,sy+10,0xffffff,false);}
-            if(d.state()!=0||d.monitoring())g.drawString(font,tr(d.monitoring()?"monitor":d.state()==1?"outgoing":d.state()==2?"ringing":"connected"),sx+3,sy+3,0x83e0ca,true);
+            if(!d.isSht308()&&(d.state()!=0||d.monitoring()))g.drawString(font,tr(d.monitoring()?"monitor":d.state()==1?"outgoing":d.state()==2?"ringing":"connected"),sx+3,sy+3,0x83e0ca,true);
         }
+        if(d.isSht308()){
+            if(d.offHook())g.blit(new ResourceLocation(HomeSystems.MODID,"textures/block/sht_308_receiver.png"),x(-65),y(0),w(60),h(250),0,0,128,512,128,512);
+            for(int i=0;i<3;i++){int color=d.sht308().lampColor(i);if(color!=0){g.setColor((color>>16&255)/255f,(color>>8&255)/255f,(color&255)/255f,1);g.blit(new ResourceLocation(HomeSystems.MODID,"textures/block/panel_lamp.png"),x(228),y(137+i*22),w(11),h(11),0,0,32,32,32,32);g.setColor(1,1,1,1);}}
+            g.fill(x(249),y(62+(2-d.sht308().volume())*8),x(252),y(70+(2-d.sht308().volume())*8),0xff50584d);
+            g.fill(x(69),y(d.operational()?200:214),x(72),y(d.operational()?209:223),0xff50584d);
+            if(d.operational())g.fill(x(223),y(32),x(226),y(35),0xff7fd993);
+            g.fill(x(142+d.sht308().brightness()*9),y(249),x(149+d.sht308().brightness()*9),y(252),0xff50584d);
+            g.fill(x(192+d.sht308().contrast()*9),y(249),x(199+d.sht308().contrast()*9),y(252),0xff50584d);
+        }
+        if(d.emergencyAlerts()>0)g.drawString(font,Component.translatable("screen.homesystems.sht_alarm_count",d.emergencyAlerts()),leftPos+20,topPos+32,0xff6559,true);
         // Replaceable logo texture, separate from the product's printed face.
-        g.blit(new ResourceLocation(HomeSystems.MODID,"textures/logo/"+design.id+".png"),x(83),y(239),w(90),h(10),0,0,128,16,128,16);
+        g.blit(new ResourceLocation(HomeSystems.MODID,"textures/logo/"+design.id+".png"),x(design.logoX()),y(design.logoY()),w(design.logoWidth()),h(design.logoHeight()),0,0,128,16,128,16);
     }
     @Override protected void renderLabels(GuiGraphics g,int mx,int my){
         g.drawString(font,title,8,7,0xe3edf5,false);var d=menu.device();if(d==null)return;

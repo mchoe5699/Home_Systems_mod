@@ -175,5 +175,16 @@
   "screen.homesystems.panel_guard": "Guard",
   "screen.homesystems.panel_home": "Controls",
   "screen.homesystems.panel_building": "Bldg",
-  "screen.homesystems.panel_unit": "Unit"
+  "screen.homesystems.panel_unit": "Unit",
+  "screen.homesystems.sht_emergency": "Emergency alarm / cancel",
+  "screen.homesystems.sht_away": "Away mode / cancel",
+  "screen.homesystems.sht_entrance": "Entrance: monitor / extend / lobby unlock",
+  "screen.homesystems.sht_power": "Side power switch",
+  "screen.homesystems.sht_volume": "Ring volume: low / medium / high",
+  "screen.homesystems.sht_brightness": "Bottom brightness: low / medium / high",
+  "screen.homesystems.sht_contrast": "Bottom contrast: low / medium / high",
+  "block.homesystems.sht_308": "Samsung SHT-308 Video Phone",
+  "message.homesystems.sht_lift_receiver": "[SHT-308] Lift the receiver first.",
+  "message.homesystems.sht_emergency_report": "[EMERGENCY] SHT-308 alarm at building %s, unit %s.",
+  "screen.homesystems.sht_alarm_count": "Household emergency alarms: %s"
 }

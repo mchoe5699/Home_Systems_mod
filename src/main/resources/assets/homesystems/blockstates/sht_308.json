@@ -1,0 +1,36 @@
+{
+  "variants": {
+    "facing=north,offhook=false": {
+      "model": "homesystems:block/sht_308",
+      "y": 0
+    },
+    "facing=north,offhook=true": {
+      "model": "homesystems:block/sht_308_offhook",
+      "y": 0
+    },
+    "facing=east,offhook=false": {
+      "model": "homesystems:block/sht_308",
+      "y": 90
+    },
+    "facing=east,offhook=true": {
+      "model": "homesystems:block/sht_308_offhook",
+      "y": 90
+    },
+    "facing=south,offhook=false": {
+      "model": "homesystems:block/sht_308",
+      "y": 180
+    },
+    "facing=south,offhook=true": {
+      "model": "homesystems:block/sht_308_offhook",
+      "y": 180
+    },
+    "facing=west,offhook=false": {
+      "model": "homesystems:block/sht_308",
+      "y": 270
+    },
+    "facing=west,offhook=true": {
+      "model": "homesystems:block/sht_308_offhook",
+      "y": 270
+    }
+  }
+}

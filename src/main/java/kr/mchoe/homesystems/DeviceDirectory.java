@@ -96,6 +96,18 @@ public final class DeviceDirectory extends SavedData {
         if(DeviceRouting.guard(device))guardInfo.put(device.location(),new GuardInfo(device.guardNumber(),device.guardPresence(),device.communicationType()));
         else guardInfo.remove(device.location());
     }
+    public java.util.List<DeviceBlockEntity> linkedEntrances(DeviceBlockEntity indoor){
+        if(!(indoor.getLevel() instanceof net.minecraft.server.level.ServerLevel level))return java.util.List.of();
+        return devices.stream().map(pos->resolve(level.getServer(),pos)).filter(java.util.Objects::nonNull).filter(d->DeviceRouting.door(d)&&d.links().isLinked(indoor)&&DeviceRouting.allowed(d,indoor)).toList();
+    }
+    public java.util.List<DeviceBlockEntity> assignedGuardDevices(DeviceBlockEntity source){
+        if(!source.addressConfigured()||!(source.getLevel() instanceof net.minecraft.server.level.ServerLevel level))return java.util.List.of();
+        return devices.stream().map(pos->resolve(level.getServer(),pos)).filter(java.util.Objects::nonNull).filter(d->DeviceRouting.guard(d)&&d.addressConfigured()&&d.operational()&&d.guardNumber()==source.guardNumber()&&d.communicationType()==source.communicationType()&&EstateData.same(d,source)).toList();
+    }
+    public int emergencyCount(DeviceBlockEntity guard){
+        if(!(guard.getLevel() instanceof net.minecraft.server.level.ServerLevel level)||!DeviceRouting.guard(guard)||!guard.addressConfigured())return 0;
+        return (int)devices.stream().map(pos->resolve(level.getServer(),pos)).filter(java.util.Objects::nonNull).filter(d->d.isSht308()&&d.addressConfigured()&&d.sht308().alertsReady()&&d.guardNumber()==guard.guardNumber()&&d.communicationType()==guard.communicationType()&&EstateData.same(d,guard)).count();
+    }
     public DeviceBlockEntity cameraFor(DeviceBlockEntity indoor){
         if(!(indoor.getLevel() instanceof net.minecraft.server.level.ServerLevel level))return null;
         return devices.stream().map(pos->resolve(level.getServer(),pos)).filter(java.util.Objects::nonNull)

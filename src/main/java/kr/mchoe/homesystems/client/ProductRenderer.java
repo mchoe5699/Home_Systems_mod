@@ -27,20 +27,33 @@ public final class ProductRenderer implements BlockEntityRenderer<DeviceBlockEnt
         if(d.getBlockState().getValue(DeviceBlock.MODEL)!=0)return;
         pose.pushPose();pose.translate(.5,0,.5);float angle=switch(d.getBlockState().getValue(DeviceBlock.FACING)){case EAST->-90;case SOUTH->-180;case WEST->-270;default->0;};pose.mulPose(Axis.YP.rotationDegrees(angle));pose.translate(-.5,0,-.5);
         if(design.desktop){pose.translate(.5,1.2/16.,10/16.);pose.mulPose(Axis.XP.rotationDegrees(22.5f));pose.translate(-.5,-1.2/16.,-10/16.);}
-        pose.translate(design.x1/16.,design.y1/16.,design.z0/16.-.002);pose.scale(-design.width()/4096f,-design.height()/4096f,1/4096f);
+        pose.translate(design.x1/16.,design.y1/16.,design.faceZ()/16.-.002);pose.scale(-design.width()/4096f,-design.height()/4096f,1/4096f);
         if(design.sx!=design.ex){
             var texture=WorldCameras.texture(d);int x=design.sx,y=design.sy,w=design.ex-x,h=design.ey-y;
-            quad(pose,buffers,texture==null?WHITE:texture,x,y,w,h,texture==null?0x10222d:0xffffff,texture==null);
-            if(texture==null){text(pose,buffers,d.addressConfigured()?d.buildingNumber()+" - "+d.unitNumber():"HOME SYSTEMS",x+6,y+12,0xe3edf1);text(pose,buffers,d.state()==0?"STANDBY":d.state()==1?"CALLING":d.state()==2?"INCOMING":"CONNECTED",x+6,y+25,0x76dfc4);}
+            quad(pose,buffers,texture==null?WHITE:texture,x,y,w,h,texture==null?(d.isSht308()?0x302f35:0x10222d):0xffffff,texture==null);
+            if(texture==null&&!d.isSht308()){text(pose,buffers,d.addressConfigured()?d.buildingNumber()+" - "+d.unitNumber():"HOME SYSTEMS",x+6,y+12,0xe3edf1);text(pose,buffers,d.state()==0?"STANDBY":d.state()==1?"CALLING":d.state()==2?"INCOMING":"CONNECTED",x+6,y+25,0x76dfc4);}
             if(design==ProductDesign.WALLPAD&&d.panelPage()==1){for(int i=0;i<4;i++){int cx=30+(i%2)*103,cy=55+(i/2)*44;quad(pose,buffers,WHITE,cx,cy,92,34,d.homeNetwork().enabled(i)?0x327e72:0x204c5e,true);text(pose,buffers,new String[]{"LIGHT","DOOR","GAS","OTHER"}[i],cx+5,cy+10,0xffffff);}}
         }
         if(design==ProductDesign.WALLPAD){
             String[] labels={"monitor","panel_guard","panel_home","answer","unlock","end"};
             for(int i=0;i<6;i++){int cx=30+(i%3)*68,cy=135+(i/3)*39;quad(pose,buffers,WHITE,cx,cy,63,31,0x204c5e,true);text(pose,buffers,net.minecraft.network.chat.Component.translatable("screen.homesystems."+labels[i]).getString(),cx+3,cy+10,0xe0f0f5);}
         }
+        if(d.isSht308()){
+            pose.pushPose();pose.translate(0,0,-95);
+            for(int i=0;i<3;i++){int color=d.sht308().lampColor(i);if(color!=0)quad(pose,buffers,new ResourceLocation(HomeSystems.MODID,"textures/block/panel_lamp.png"),228,137+i*22,11,11,color,true);}
+            pose.popPose();
+            quad(pose,buffers,WHITE,249,62+(2-d.sht308().volume())*8,3,8,0x50584d,true);
+            quad(pose,buffers,WHITE,69,d.operational()?200:214,3,9,0x50584d,true);
+            if(d.operational())quad(pose,buffers,WHITE,223,32,3,3,0x7fd993,true);
+            quad(pose,buffers,WHITE,142+d.sht308().brightness()*9,249,7,3,0x50584d,true);
+            quad(pose,buffers,WHITE,192+d.sht308().contrast()*9,249,7,3,0x50584d,true);
+        }
+        if(!d.isSht308()){
         boolean blink=d.state()!=DeviceBlockEntity.RINGING||d.getLevel().getGameTime()%20<10;
         quad(pose,buffers,WHITE,238,10,6,6,d.state()==0?0x37614e:blink?0x5affbc:0x183d36,true);
-        quad(pose,buffers,new ResourceLocation(HomeSystems.MODID,"textures/logo/"+design.id+".png"),83,239,90,10,0xffffff,true);
+        }
+        if(d.emergencyAlerts()>0)text(pose,buffers,"ALARM "+d.emergencyAlerts(),80,5,0xff544b);
+        quad(pose,buffers,new ResourceLocation(HomeSystems.MODID,"textures/logo/"+design.id+".png"),design.logoX(),design.logoY(),design.logoWidth(),design.logoHeight(),0xffffff,true);
         pose.popPose();
     }
     @Override public int getViewDistance(){return 24;}

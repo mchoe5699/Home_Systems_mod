@@ -12,8 +12,11 @@ assets/homesystems/textures/logo/wallpad.png
 assets/homesystems/textures/logo/guard_station.png
 assets/homesystems/textures/logo/door_camera.png
 assets/homesystems/textures/logo/door_phone.png
+assets/homesystems/textures/logo/sht_308.png
 ```
 
 팩 루트의 `pack.mcmeta`에는 Minecraft 1.20.1용 `pack_format: 15`를 사용합니다. 이 변경은 클라이언트 리소스이므로 모든 플레이어에게 같은 로고를 보이게 하려면 같은 리소스 팩을 적용해야 합니다. 서버 리소스 팩 배포도 가능합니다. 게임 중 리소스 다시 불러오기는 F3+T입니다.
 
 Minecraft는 SVG를 직접 텍스처로 읽지 않습니다. 사용자가 SVG를 제공하면 해당 파일을 PNG로 변환해 이 위치에 등록합니다. PNG/SVG 파일을 제공받기 전에 임의로 특정 회사 로고를 넣지 않습니다.
+
+SHT-308은 사진/PDF에 있는 SAMSUNG 위치의 별도 로고를 사용합니다. 해당 모델은 256×40 투명 PNG를 권장합니다.

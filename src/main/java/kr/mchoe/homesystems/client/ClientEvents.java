@@ -12,6 +12,7 @@ public final class ClientEvents {
     @SubscribeEvent public static void renderers(net.minecraftforge.client.event.EntityRenderersEvent.RegisterRenderers event){event.registerBlockEntityRenderer(HomeSystems.DEVICE.get(),ProductRenderer::new);}
     @SubscribeEvent public static void setup(FMLClientSetupEvent event) {
         event.enqueueWork(() -> {
+            net.minecraft.client.renderer.ItemBlockRenderTypes.setRenderLayer(HomeSystems.SHT_308.get(),net.minecraft.client.renderer.RenderType.cutout());
             MenuScreens.register(HomeSystems.SIBLING_MENU.get(), SiblingScreen::new);
             MenuScreens.register(HomeSystems.DEVICE_MENU.get(), DeviceScreen::new);
             MenuScreens.register(HomeSystems.DASHBOARD_MENU.get(), DashboardScreen::new);

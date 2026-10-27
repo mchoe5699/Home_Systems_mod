@@ -28,7 +28,11 @@ public class DeviceBlockEntity extends BlockEntity implements MenuProvider {
     private GlobalPos monitorLocation;
     private long monitorUntil;
     private int callState = IDLE, guardNumber, buildingNumber, unitNumber;
-    private boolean addressConfigured, peerVideo;
+    private boolean addressConfigured, peerVideo, peerEntrance;
+    private boolean forwardedSession;
+    private int emergencyAlerts,peerKind;
+    private final List<GlobalPos> forwardedHomes=new ArrayList<>();
+    private final Sht308 sht308=new Sht308(this);
     private int guardPresence=GUARD_PRESENT;
     private boolean bypassAllowed;
     private GlobalPos peerLocation;
@@ -37,19 +41,30 @@ public class DeviceBlockEntity extends BlockEntity implements MenuProvider {
     private final HomeNetwork homeNetwork = new HomeNetwork(this);
     private final DeviceLinks links=new DeviceLinks(this);
 
-    public DeviceBlockEntity(BlockPos pos, BlockState state) { super(HomeSystems.DEVICE.get(), pos, state); }
-    public int communicationType(){return communicationType;}
+    public DeviceBlockEntity(BlockPos pos, BlockState state) { super(HomeSystems.DEVICE.get(), pos, state);communicationType=isSht308()?1:0; }
+    public boolean isSht308(){return getBlockState().is(HomeSystems.SHT_308.get());}
+    public Sht308 sht308(){return sht308;}
+    public boolean operational(){return !isSht308()||sht308.powered();}
+    public boolean monochrome(){return isSht308();}
+    public boolean peerIsEntrance(){return peerEntrance;}
+    public int peerKind(){return peerKind;}
+    public int emergencyAlerts(){return emergencyAlerts;}
+    public void stopMonitor(){monitorLocation=null;monitorUntil=0;changed();}
+    public void renewCall(){if(callState==CONNECTED){callStarted=level.getGameTime();var other=peer();if(other!=null)other.callStarted=callStarted;}}
+    public int communicationType(){return isSht308()?1:communicationType;}
     public int panelPage(){return panelPage;}
     public boolean hasHandset(){return ProductDesign.of(getBlockState()).handset;}
     public boolean offHook(){return hasHandset()&&getBlockState().getValue(DeviceBlock.OFFHOOK);}
     public boolean setCommunicationType(int type){
-        if(type<0||type>1||callState!=IDLE||!(level instanceof ServerLevel))return false;
+        if(isSht308()&&type!=1||type<0||type>1||callState!=IDLE||!(level instanceof ServerLevel))return false;
         monitorLocation=null;communicationType=type;if(addressConfigured)DeviceDirectory.get(((ServerLevel)level).getServer()).registerAddress(this);changed();return true;
     }
     public boolean setHandset(boolean lifted){
         if(!hasHandset()||!(level instanceof ServerLevel))return false;
         level.setBlock(worldPosition,getBlockState().setValue(DeviceBlock.OFFHOOK,lifted),3);
-        if(!lifted)endCall();else if(callState==RINGING)answer();changed();return true;
+        if(!lifted){if(isSht308())stopMonitor();endCall();}else if(callState==RINGING&&operational())answer();
+        else if(isSht308()&&monitoring()&&operational()){var camera=monitorSource();if(camera!=null&&call(camera))camera.answer();}
+        changed();return true;
     }
     public DeviceBlockEntity monitorSource(){
         if(!(level instanceof ServerLevel server)||monitorLocation==null||level.getGameTime()>monitorUntil||callState!=IDLE)return null;
@@ -58,9 +73,9 @@ public class DeviceBlockEntity extends BlockEntity implements MenuProvider {
     }
     public boolean monitoring(){return monitorLocation!=null&&level!=null&&level.getGameTime()<=monitorUntil&&callState==IDLE;}
     public boolean startMonitor(){
-        if(!(level instanceof ServerLevel server)||!DeviceVideo.hasDisplay(this)||!DeviceRouting.indoor(this)||callState!=IDLE)return false;
+        if(!(level instanceof ServerLevel server)||!operational()||!DeviceVideo.hasDisplay(this)||!DeviceRouting.indoor(this)||callState!=IDLE)return false;
         var source=DeviceDirectory.get(server.getServer()).cameraFor(this);if(source==null)return false;
-        monitorLocation=source.location();monitorUntil=level.getGameTime()+600;panelPage=0;changed();return true;
+        monitorLocation=source.location();monitorUntil=level.getGameTime()+(isSht308()?300:600);panelPage=0;changed();return true;
     }
     public String number() { return addressConfigured ? (DeviceRouting.guard(this) ? "G" + guardNumber : buildingNumber + "-" + unitNumber) : number; }
     public String legacyNumber() { return number; }
@@ -79,7 +94,7 @@ public class DeviceBlockEntity extends BlockEntity implements MenuProvider {
         if(presence!=GUARD_PRESENT)endCall();guardPresence=presence;
         var directory=DeviceDirectory.get(serverLevel.getServer());directory.registerAddress(this);directory.refreshPresenceClients(serverLevel.getServer());changed();return true;
     }
-    public boolean ready() { return addressConfigured || !number.isEmpty(); }
+    public boolean ready() { return operational()&&(addressConfigured || !number.isEmpty()); }
     public HomeNetwork homeNetwork() { return homeNetwork; }
     public DeviceLinks links(){return links;}
     public GlobalPos location() { return GlobalPos.of(level.dimension(), worldPosition); }
@@ -129,9 +144,11 @@ public class DeviceBlockEntity extends BlockEntity implements MenuProvider {
         if (request.action() != DeviceNetwork.Action.END && !EstateData.playerMayUse(player, this)) { tell(player, "outside_estate"); return; }
         long now = level.getGameTime(); if (now - lastAction < 4) return; lastAction = now;
         var directory = DeviceDirectory.get(serverLevel.getServer());
+        if(isSht308()&&!operational()&&request.action()!=DeviceNetwork.Action.SHT_POWER&&request.action()!=DeviceNetwork.Action.HANDSET&&request.action()!=DeviceNetwork.Action.END)return;
         switch (request.action()) {
             case CALL, CALL_GUARD, CALL_OTHER_GUARD -> {
                 if (!addressConfigured) { tell(player, "configure_first"); return; }
+                if(isSht308()&&!offHook()){tell(player,"sht_lift_receiver");return;}
                 List<DeviceBlockEntity> receivers;
                 if (request.action() == DeviceNetwork.Action.CALL) {
                     if(DeviceRouting.door(this)&&links.homeCount()==0){tell(player,"home_link_required");return;}
@@ -148,6 +165,16 @@ public class DeviceBlockEntity extends BlockEntity implements MenuProvider {
                 tell(player, callMany(receivers) ? "calling" : "address_offline");
             }
             case ANSWER -> { if (!answer()) tell(player, "no_call"); }
+            case SHT_EMERGENCY,SHT_AWAY,SHT_ENTRANCE,SHT_POWER,SHT_VOLUME,SHT_BRIGHTNESS,SHT_CONTRAST -> {
+                if(!isSht308()||!canConfigure(player)){tell(player,"owner_only");return;}
+                switch(request.action()){
+                    case SHT_EMERGENCY->sht308.setEmergency(!sht308.emergency());
+                    case SHT_AWAY->sht308.setAway(!sht308.away());
+                    case SHT_ENTRANCE->{if(!sht308.entranceButton())tell(player,"monitor_unavailable");}
+                    case SHT_POWER->sht308.togglePower();
+                    default->sht308.adjust(request.action());
+                }
+            }
             case END -> {monitorLocation=null;endCall();changed();}
             case HANDSET -> setHandset(!offHook());
             case MONITOR -> {if(!canConfigure(player)){tell(player,"owner_only");return;}if(monitoring()){monitorLocation=null;changed();}else if(!startMonitor())tell(player,"monitor_unavailable");}
@@ -173,15 +200,22 @@ public class DeviceBlockEntity extends BlockEntity implements MenuProvider {
     public boolean call(DeviceBlockEntity receiver) { return receiver != null && callMany(List.of(receiver)); }
     public boolean callMany(List<DeviceBlockEntity> receivers) {
         if (!(level instanceof ServerLevel) || callState != IDLE || !ready()) return false;
-        var candidates = receivers.stream().filter(Objects::nonNull).filter(d -> d.ready() && d.callState == IDLE && DeviceRouting.allowed(this, d)).distinct().limit(64).toList();
+        List<DeviceBlockEntity> requested=new ArrayList<>(receivers);forwardedHomes.clear();forwardedSession=false;
+        if(DeviceRouting.door(this))for(var resident:new ArrayList<>(receivers)){
+            if(resident!=null&&resident.isSht308()&&resident.operational()&&resident.sht308.away()&&resident.ready()&&DeviceRouting.allowed(this,resident)){
+                var guards=DeviceDirectory.get(((ServerLevel)level).getServer()).guards(resident,resident.guardNumber(),true);
+                if(!guards.isEmpty()){requested.addAll(guards);forwardedHomes.add(resident.location());forwardedSession=true;}
+            }
+        }
+        var candidates = requested.stream().filter(Objects::nonNull).filter(d -> d.ready() && d.callState == IDLE && DeviceRouting.allowed(this, d)).distinct().limit(64).toList();
         if (candidates.isEmpty()) return false;
-        ringingTargets.clear();
+        monitorLocation=null;ringingTargets.clear();
         for (DeviceBlockEntity receiver : candidates) {
             ringingTargets.add(receiver.location()); receiver.peerLocation = location(); receiver.peerNumber = number();
-            receiver.peerVideo = DeviceRouting.videoSource(this); receiver.callState = RINGING; receiver.callStarted = receiver.level.getGameTime();
+            receiver.monitorLocation=null;receiver.peerVideo = DeviceRouting.videoSource(this);receiver.peerEntrance=DeviceRouting.entrance(this);receiver.peerKind=DeviceRouting.kind(this);receiver.callState = RINGING; receiver.callStarted = receiver.level.getGameTime();
             receiver.changed(); receiver.notifyNearby(Component.translatable("message.homesystems.incoming", number())); receiver.ring();
         }
-        peerLocation = candidates.get(0).location(); peerNumber = candidates.get(0).number(); peerVideo = DeviceRouting.videoSource(candidates.get(0));
+        peerLocation = candidates.get(0).location(); peerNumber = candidates.get(0).number(); peerVideo = DeviceRouting.videoSource(candidates.get(0));peerEntrance=DeviceRouting.entrance(candidates.get(0));peerKind=DeviceRouting.kind(candidates.get(0));
         callState = OUTGOING; callStarted = level.getGameTime(); changed(); return true;
     }
     public boolean answer() {
@@ -192,23 +226,31 @@ public class DeviceBlockEntity extends BlockEntity implements MenuProvider {
             var other = DeviceDirectory.resolve(((ServerLevel)level).getServer(), pos);
             if (other != null && other.callState == RINGING && caller.location().equals(other.peerLocation)) other.clearCall();
         }
-        caller.ringingTargets.clear(); caller.peerLocation = location(); caller.peerNumber = number(); caller.peerVideo = DeviceRouting.videoSource(this);
+        caller.ringingTargets.clear(); caller.peerLocation = location(); caller.peerNumber = number(); caller.peerVideo = DeviceRouting.videoSource(this);caller.peerEntrance=DeviceRouting.entrance(this);caller.peerKind=DeviceRouting.kind(this);
         callState = caller.callState = CONNECTED; if(hasHandset())level.setBlock(worldPosition,getBlockState().setValue(DeviceBlock.OFFHOOK,true),3); callStarted = level.getGameTime(); caller.callStarted = caller.level.getGameTime();
         changed(); caller.changed();
         notifyNearby(Component.translatable("message.homesystems.connected", caller.number()));
         caller.notifyNearby(Component.translatable("message.homesystems.connected", number())); return true;
     }
+    private boolean forwardingValid(){
+        if(!(level instanceof ServerLevel server))return false;
+        return forwardedHomes.stream().map(p->DeviceDirectory.resolve(server.getServer(),p)).filter(Objects::nonNull).anyMatch(d->d.isSht308()&&d.operational()&&d.sht308.away()&&links.isLinked(d)&&DeviceRouting.allowed(this,d));
+    }
+    private int callLimit(DeviceBlockEntity other){
+        if(forwardedSession||other!=null&&other.forwardedSession||isSht308()&&peerEntrance)return callState==CONNECTED?1200:300;
+        return callState==CONNECTED?6000:600;
+    }
     private void refreshOutgoing() {
         if (callState != OUTGOING || !(level instanceof ServerLevel serverLevel)) return;
         ringingTargets.removeIf(pos -> {
             var d = DeviceDirectory.resolve(serverLevel.getServer(), pos);
-            boolean invalid = d == null || d.callState != RINGING || !location().equals(d.peerLocation) || !DeviceRouting.allowed(this, d);
+            boolean invalid = d == null || d.callState != RINGING || !location().equals(d.peerLocation) || !DeviceRouting.allowed(this, d) || forwardedSession&&d!=null&&DeviceRouting.guard(d)&&!forwardingValid();
             if (invalid && d != null && d.callState == RINGING && location().equals(d.peerLocation)) d.clearCall();
             return invalid;
         });
         if (ringingTargets.isEmpty()) { clearCall(); return; }
         if (!ringingTargets.contains(peerLocation)) {
-            peerLocation = ringingTargets.get(0); var d = peer(); peerNumber = d.number(); peerVideo = DeviceRouting.videoSource(d); changed();
+            peerLocation = ringingTargets.get(0); var d = peer(); peerNumber = d.number(); peerVideo = DeviceRouting.videoSource(d);peerEntrance=DeviceRouting.entrance(d);peerKind=DeviceRouting.kind(d);changed();
         }
     }
     public void endCall() {
@@ -225,7 +267,7 @@ public class DeviceBlockEntity extends BlockEntity implements MenuProvider {
     }
     private void clearCall() {
         if (callState == IDLE && peerLocation == null && ringingTargets.isEmpty()) return;
-        callState = IDLE; peerLocation = null; peerNumber = ""; peerVideo = false; ringingTargets.clear(); changed();
+        callState = IDLE; peerLocation = null; peerNumber = ""; peerVideo = false;peerEntrance=false;peerKind=0;forwardedSession=false;forwardedHomes.clear(); ringingTargets.clear(); changed();
     }
     public boolean unlockPeer() {
         DeviceBlockEntity other = peer();
@@ -239,6 +281,7 @@ public class DeviceBlockEntity extends BlockEntity implements MenuProvider {
     public boolean openLinkedDoors(){
         if(!(level instanceof ServerLevel)||!EstateData.inside(this))return false;
         var other=peer();
+        if(isSht308()&&(callState!=CONNECTED||other==null||!DeviceRouting.lobby(other)))return false;
         if(callState==CONNECTED&&other!=null&&DeviceRouting.allowed(this,other)){
             if(DeviceRouting.lobby(other)){boolean opened=other.links.openDoors()>0;return unlockPeer()||opened;}
             if(DeviceRouting.door(other)){int opened=links.openDoors();return unlockPeer()||opened>0;}
@@ -247,19 +290,21 @@ public class DeviceBlockEntity extends BlockEntity implements MenuProvider {
     }
     public static void serverTick(Level level, BlockPos pos, BlockState state, DeviceBlockEntity d) {
         if (d.callState == OUTGOING) d.refreshOutgoing();
+        d.sht308.tick();
         var other = d.peer();
+        if(d.forwardedSession&&d.callState==CONNECTED&&other!=null&&DeviceRouting.guard(other)&&!d.forwardingValid())d.endCall();
         if (d.callState == RINGING && (other == null || other.callState != OUTGOING || !other.ringingTargets.contains(d.location()) || !DeviceRouting.allowed(other, d))) d.endCall();
         else if (d.callState == CONNECTED && (other == null || other.callState != CONNECTED || !d.location().equals(other.peerLocation) || !DeviceRouting.allowed(d, other))) d.endCall();
         if (!EstateData.inside(d) && state.getValue(DeviceBlock.POWERED)) { level.setBlock(pos, state.setValue(DeviceBlock.POWERED, false), 3); level.updateNeighborsAt(pos, state.getBlock()); }
         if (level.getGameTime() % 20 == 0) {
-            d.homeNetwork.tick();d.links.tick();if(d.monitorLocation!=null&&d.monitorSource()==null){d.monitorLocation=null;d.changed();}boolean bypass=d.canCallAlternateGuard();if(bypass!=d.bypassAllowed){d.bypassAllowed=bypass;d.changed();}
+            d.homeNetwork.tick();d.links.tick();int alerts=level instanceof ServerLevel server?DeviceDirectory.get(server.getServer()).emergencyCount(d):0;if(alerts!=d.emergencyAlerts){d.emergencyAlerts=alerts;d.changed();}if(d.monitorLocation!=null&&d.monitorSource()==null){d.monitorLocation=null;d.changed();}boolean bypass=d.canCallAlternateGuard();if(bypass!=d.bypassAllowed){d.bypassAllowed=bypass;d.changed();}
         }
         if (level.getGameTime() % 5 == 0) DeviceVideo.tick(d);
         if (d.callState == IDLE || level.getGameTime() % 20 != 0) return;
-        if (level.getGameTime() - d.callStarted >= (d.callState == CONNECTED ? 6000 : 600)) { d.endCall(); return; }
+        if (level.getGameTime() - d.callStarted >= d.callLimit(other)) { d.endCall(); return; }
         if (d.callState == RINGING && level.getGameTime() % 40 == 0) d.ring();
     }
-    private void ring() { level.playSound(null, worldPosition, SoundEvents.NOTE_BLOCK_BELL.value(), SoundSource.BLOCKS, .9F, 1.15F); }
+    private void ring() { level.playSound(null, worldPosition, SoundEvents.NOTE_BLOCK_BELL.value(), SoundSource.BLOCKS, isSht308()?sht308.ringVolume():.9F, 1.15F); }
     private static void tell(ServerPlayer player, String key) { player.sendSystemMessage(Component.translatable("message.homesystems." + key)); }
     public void notifyNearby(Component message) {
         if (level instanceof ServerLevel serverLevel) serverLevel.players().stream().filter(player -> EstateData.playerMayUse(player, this)
@@ -267,18 +312,18 @@ public class DeviceBlockEntity extends BlockEntity implements MenuProvider {
     }
     void changed() { setChanged(); if (level != null && !level.isClientSide) level.sendBlockUpdated(worldPosition, getBlockState(), getBlockState(), 3); }
     @Override protected void saveAdditional(CompoundTag tag) {
-        super.saveAdditional(tag); tag.putInt("CommunicationType",communicationType);tag.putInt("PanelPage",panelPage); tag.putString("Number", number); tag.putString("Target", target); if (owner != null) tag.putUUID("Owner", owner);
+        super.saveAdditional(tag);if(isSht308())sht308.save(tag);tag.putInt("CommunicationType",communicationType);tag.putInt("PanelPage",panelPage); tag.putString("Number", number); tag.putString("Target", target); if (owner != null) tag.putUUID("Owner", owner);
         tag.putBoolean("AddressConfigured", addressConfigured); tag.putInt("GuardNumber", guardNumber); tag.putInt("BuildingNumber", buildingNumber); tag.putInt("UnitNumber", unitNumber);tag.putInt("GuardPresence",guardPresence); homeNetwork.save(tag);links.save(tag);
     }
     @Override public void load(CompoundTag tag) {
-        super.load(tag); communicationType=tag.getInt("CommunicationType")==1?1:0;panelPage=tag.getInt("PanelPage")==1?1:0;monitorLocation=null;monitorUntil=0;
+        super.load(tag);sht308.load(tag);communicationType=tag.getInt("CommunicationType")==1?1:0;panelPage=tag.getInt("PanelPage")==1?1:0;monitorLocation=null;monitorUntil=0;
         if(tag.contains("MonitorUntil")){monitorUntil=tag.getLong("MonitorUntil");if(tag.contains("MonitorPos")&&level!=null)monitorLocation=GlobalPos.of(level.dimension(),BlockPos.of(tag.getLong("MonitorPos")));} number = tag.getString("Number"); target = tag.getString("Target"); owner = tag.hasUUID("Owner") ? tag.getUUID("Owner") : null;
         guardNumber = tag.getInt("GuardNumber"); buildingNumber = tag.getInt("BuildingNumber"); unitNumber = tag.getInt("UnitNumber");
         guardPresence=tag.getInt("GuardPresence");if(guardPresence<0||guardPresence>2)guardPresence=GUARD_PRESENT;
         addressConfigured = tag.getBoolean("AddressConfigured") && DeviceRouting.valid(guardNumber) && DeviceRouting.valid(buildingNumber) && DeviceRouting.valid(unitNumber); homeNetwork.load(tag);links.load(tag);
     }
-    @Override public CompoundTag getUpdateTag() { var tag = saveWithoutMetadata(); tag.putInt("CallState", callState); tag.putString("PeerNumber", peerNumber); tag.putBoolean("PeerVideo", peerVideo);tag.putBoolean("BypassAllowed",canCallAlternateGuard());if(monitorLocation!=null){tag.putLong("MonitorPos",monitorLocation.pos().asLong());tag.putLong("MonitorUntil",monitorUntil);}return tag; }
-    @Override public void handleUpdateTag(CompoundTag tag) { load(tag); callState = tag.getInt("CallState"); peerNumber = tag.getString("PeerNumber"); peerVideo = tag.getBoolean("PeerVideo");bypassAllowed=tag.getBoolean("BypassAllowed"); }
+    @Override public CompoundTag getUpdateTag() { var tag = saveWithoutMetadata(); tag.putInt("CallState", callState); tag.putString("PeerNumber", peerNumber); tag.putBoolean("PeerVideo", peerVideo);tag.putBoolean("PeerEntrance",peerEntrance);tag.putInt("PeerKind",peerKind);tag.putInt("EmergencyAlerts",emergencyAlerts);tag.putBoolean("BypassAllowed",canCallAlternateGuard());if(monitorLocation!=null){tag.putLong("MonitorPos",monitorLocation.pos().asLong());tag.putLong("MonitorUntil",monitorUntil);}return tag; }
+    @Override public void handleUpdateTag(CompoundTag tag) { load(tag); callState = tag.getInt("CallState"); peerNumber = tag.getString("PeerNumber"); peerVideo = tag.getBoolean("PeerVideo");peerEntrance=tag.getBoolean("PeerEntrance");peerKind=tag.getInt("PeerKind");emergencyAlerts=tag.getInt("EmergencyAlerts");bypassAllowed=tag.getBoolean("BypassAllowed"); }
     @Override public ClientboundBlockEntityDataPacket getUpdatePacket() { return ClientboundBlockEntityDataPacket.create(this); }
     @Override public void onDataPacket(Connection connection, ClientboundBlockEntityDataPacket packet) { if (packet.getTag() != null) handleUpdateTag(packet.getTag()); }
     @Override public Component getDisplayName() { return SiblingModels.options(getBlockState().getBlock()).stream().filter(option -> option.slot() == getBlockState().getValue(DeviceBlock.MODEL)).map(SiblingModels.Option::name).findFirst().orElse(getBlockState().getBlock().getName()); }

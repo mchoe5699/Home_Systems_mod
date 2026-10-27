@@ -36,6 +36,7 @@ public final class HomeSystems {
 
     public static final RegistryObject<Block> LOBBY_PHONE = device("lobby_phone");
     public static final RegistryObject<Block> VIDEO_PHONE = device("video_phone");
+    public static final RegistryObject<Block> SHT_308 = device("sht_308");
     public static final RegistryObject<Block> INTERPHONE = device("interphone");
     public static final RegistryObject<Block> WALLPAD = device("wallpad");
     public static final RegistryObject<Block> GUARD_STATION = device("guard_station");
@@ -54,7 +55,7 @@ public final class HomeSystems {
         BlockEntityType.Builder.of(HomeRelayEntity::new, LIGHT_RELAY.get(), DOOR_RELAY.get(), GAS_RELAY.get(), UTILITY_RELAY.get()).build(null));
     public static final RegistryObject<BlockEntityType<DeviceBlockEntity>> DEVICE = ENTITIES.register("device", () ->
         BlockEntityType.Builder.of(DeviceBlockEntity::new, LOBBY_PHONE.get(), VIDEO_PHONE.get(),
-            INTERPHONE.get(), WALLPAD.get(), GUARD_STATION.get(), DOOR_CAMERA.get(), DOOR_PHONE.get()).build(null));
+            INTERPHONE.get(), WALLPAD.get(), GUARD_STATION.get(), DOOR_CAMERA.get(), DOOR_PHONE.get(), SHT_308.get()).build(null));
     public static final RegistryObject<MenuType<DeviceMenu>> DEVICE_MENU = MENUS.register("device", () ->
         new MenuType<>((IContainerFactory<DeviceMenu>) DeviceMenu::new, FeatureFlags.DEFAULT_FLAGS));
     public static final RegistryObject<MenuType<SiblingMenu>> SIBLING_MENU = MENUS.register("sibling_selector", () -> new MenuType<>((IContainerFactory<SiblingMenu>) SiblingMenu::new, FeatureFlags.DEFAULT_FLAGS));

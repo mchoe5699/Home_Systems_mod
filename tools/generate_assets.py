@@ -386,3 +386,16 @@ runpy.run_path(str(Path(__file__).with_name('product_assets.py')))
 ko.update({'screen.homesystems.panel_guard':'경비실','screen.homesystems.panel_home':'홈 제어','screen.homesystems.panel_building':'동','screen.homesystems.panel_unit':'호'})
 en.update({'screen.homesystems.panel_guard':'Guard','screen.homesystems.panel_home':'Controls','screen.homesystems.panel_building':'Bldg','screen.homesystems.panel_unit':'Unit'})
 write(ASSETS/'lang/ko_kr.json',ko);write(ASSETS/'lang/en_us.json',en)
+
+sht_ko={'sht_emergency':'비상 경보 켜기 / 해제','sht_away':'외출 설정 / 해제','sht_entrance':'현관 · 확인/통화 연장/공동현관 문열기','sht_power':'측면 전원 스위치','sht_volume':'호출음량 소·중·대 전환','sht_brightness':'하단 밝기 소·중·대 전환','sht_contrast':'하단 명암 소·중·대 전환'}
+sht_en={'sht_emergency':'Emergency alarm / cancel','sht_away':'Away mode / cancel','sht_entrance':'Entrance: monitor / extend / lobby unlock','sht_power':'Side power switch','sht_volume':'Ring volume: low / medium / high','sht_brightness':'Bottom brightness: low / medium / high','sht_contrast':'Bottom contrast: low / medium / high'}
+for lang,extra in [(ko,sht_ko),(en,sht_en)]:lang.update({f'screen.homesystems.{k}':v for k,v in extra.items()})
+ko['block.homesystems.sht_308']='삼성 SHT-308 비디오폰';en['block.homesystems.sht_308']='Samsung SHT-308 Video Phone'
+ko['message.homesystems.sht_lift_receiver']='[SHT-308] 먼저 수화기를 들어 주세요.';en['message.homesystems.sht_lift_receiver']='[SHT-308] Lift the receiver first.'
+ko['message.homesystems.sht_emergency_report']='[비상 경보] %s동 %s호 SHT-308에서 비상이 발생했습니다.';en['message.homesystems.sht_emergency_report']='[EMERGENCY] SHT-308 alarm at building %s, unit %s.'
+write(ASSETS/'lang/ko_kr.json',ko);write(ASSETS/'lang/en_us.json',en)
+runpy.run_path(str(Path(__file__).with_name('sht308_assets.py')))
+write(DATA/'minecraft/tags/blocks/mineable/pickaxe.json',{'replace':False,'values':[f'homesystems:{name}' for name in [*DEVICES,'sht_308']]})
+
+ko['screen.homesystems.sht_alarm_count']='세대 비상 경보 %s건';en['screen.homesystems.sht_alarm_count']='Household emergency alarms: %s'
+write(ASSETS/'lang/ko_kr.json',ko);write(ASSETS/'lang/en_us.json',en)

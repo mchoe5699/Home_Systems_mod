@@ -34,6 +34,8 @@ import org.joml.Vector3f;
 
 /** Renders a live server scene into its own framebuffer, without moving the player or world camera. */
 public final class CameraView implements AutoCloseable {
+    private boolean monochrome;private int brightness=1,contrast=1;
+    public void tone(boolean monochrome,int brightness,int contrast){if(this.monochrome!=monochrome||this.brightness!=brightness||this.contrast!=contrast){this.monochrome=monochrome;this.brightness=brightness;this.contrast=contrast;uploadedFrame=null;}}
     private RenderTarget target;
     private VideoFrame frame;
     private VideoFrame renderedFrame;
@@ -128,13 +130,15 @@ public final class CameraView implements AutoCloseable {
     public ResourceLocation worldTexture(){
         if(!prepare())return null;
         if(worldTexture==null){worldTexture=new net.minecraft.client.renderer.texture.DynamicTexture(384,216,false);worldTextureId=Minecraft.getInstance().getTextureManager().register("homesystems_camera",worldTexture);}
-        if(uploadedFrame!=frame){RenderSystem.bindTexture(target.getColorTextureId());worldTexture.getPixels().downloadTexture(0,false);worldTexture.upload();uploadedFrame=frame;}
+        if(uploadedFrame!=frame){RenderSystem.bindTexture(target.getColorTextureId());worldTexture.getPixels().downloadTexture(0,false);
+            if(monochrome){var pixels=worldTexture.getPixels();for(int py=0;py<pixels.getHeight();py++)for(int px=0;px<pixels.getWidth();px++)pixels.setPixelRGBA(px,py,kr.mchoe.homesystems.ScreenTone.monochrome(pixels.getPixelRGBA(px,py),brightness,contrast));}
+            worldTexture.upload();uploadedFrame=frame;}
         return worldTextureId;
     }
     public void render(GuiGraphics graphics,int x,int y,int width,int height){
         graphics.flush();if(!prepare())return;
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        RenderSystem.setShaderTexture(0, target.getColorTextureId());
+        if(monochrome){worldTexture();RenderSystem.setShaderTexture(0,worldTexture.getId());}else RenderSystem.setShaderTexture(0, target.getColorTextureId());
         RenderSystem.disableBlend();
         RenderSystem.disableCull();
         Matrix4f matrix = graphics.pose().last().pose();

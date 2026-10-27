@@ -1,21 +1,29 @@
-# Home Systems · 홈시스템 1.6.0
+# Home Systems · 홈시스템 1.7.0
 
 **Minecraft Java 1.20.1 / Forge 47.4.0 이상(47.x) / Java 17**용 아파트 홈시스템 모드입니다.
 싱글플레이와 Forge 전용 서버를 지원하며, 별도 라이브러리 모드는 필요하지 않습니다.
 
 ## 온라인 다운로드
 
-[**Home Systems 1.6.0 JAR 다운로드**](https://github.com/mchoe5699/Home_Systems_mod/raw/refs/heads/main/releases/1.6.0/homesystems-1.20.1-forge-1.6.0.jar)
+[**Home Systems 1.7.0 JAR 다운로드**](https://github.com/mchoe5699/Home_Systems_mod/raw/refs/heads/main/releases/1.7.0/homesystems-1.20.1-forge-1.7.0.jar)
 
 Minecraft Java 1.20.1 + Forge 47.4.0 이상(47.x), Java 17용입니다. 서버와 클라이언트에 같은 버전을 설치하세요.
-[SHA-256 체크섬](releases/1.6.0/homesystems-1.20.1-forge-1.6.0.jar.sha256)으로 파일을 확인할 수 있습니다.
+[SHA-256 체크섬](releases/1.7.0/homesystems-1.20.1-forge-1.7.0.jar.sha256)으로 파일을 확인할 수 있습니다.
 
 [새 기본 기기 5종과 실제 게임 화면 보기](docs/product-references.md)
+
+## 삼성 SHT-308 추가
+
+사용자가 제공한 사진 3장과 PDF를 기준으로 **별도 삼성 SHT-308 비디오폰**을 추가했습니다. BUS 고정, 흑백 CRT, 선 없는 수화기, 비상·경비실·외출·현관 버튼, 전원·음량·밝기·명암, PDF의 15초 영상/1분 통화와 외출 우회를 지원합니다.
+
+[**SHT-308 사용법·PDF 대응·실제 게임 화면**](docs/sht-308.md)
+
+아이템 ID: `homesystems:sht_308`. 연결 기기도 BUS로 설정하고 같은 단지에서 홈 링크로 연결하세요. 형제모델 4종은 추후 제작 대상으로 남겼습니다. 기존 기본 기기는 유지됩니다.
 
 ## 설치 및 업데이트
 
 1. Minecraft **1.20.1 Forge**를 설치합니다.
-2. 이전 홈시스템 JAR를 제거하고 **`homesystems-1.20.1-forge-1.6.0.jar`**를 `mods` 폴더에 넣습니다.
+2. 이전 홈시스템 JAR를 제거하고 **`homesystems-1.20.1-forge-1.7.0.jar`**를 `mods` 폴더에 넣습니다.
 3. 멀티플레이에서는 **서버와 모든 클라이언트에 같은 버전**을 설치합니다.
 4. 크리에이티브 **홈시스템** 탭 또는 서바이벌 조합으로 기기를 구합니다.
 5. **단지 대시보드**로 기기를 포함하는 구획을 먼저 만듭니다. 단지 밖에서는 기기가 작동하지 않습니다.
@@ -218,7 +226,7 @@ JDK 17을 설치하고 `JAVA_HOME`을 설정합니다. 체크섬이 고정된 Gr
 ./gradlew runClient
 ```
 
-Windows에서는 `gradlew.bat`를 사용합니다. 배포 파일은 **`build/libs/homesystems-1.20.1-forge-1.6.0.jar`**이며 Forge `reobfJar`를 마친 JAR를 배포합니다.
+Windows에서는 `gradlew.bat`를 사용합니다. 배포 파일은 **`build/libs/homesystems-1.20.1-forge-1.7.0.jar`**이며 Forge `reobfJar`를 마친 JAR를 배포합니다.
 GameTest는 매 실행 시 테스트 전용 `run-gametest/world`를 초기화합니다. 일반 서버·클라이언트 월드는 건드리지 않습니다.
 GameTest는 기존 단지·홈 네트워크·호출·채팅·영상 테스트에 더해, 주소 경계값·저장·관할 일치·9999동·다중 세대 호출·첫 응답·거절·기기 제거·도어카메라/도어폰 구분·경비실 상태·부재 우회·우회 금지를 검사합니다.
 도어 링크·홈 링크 아이템의 실제 선택, 위·아래 문 선택, 양쪽 문 블록 열림·자동 닫기, 링크 저장·해제·권한·교체된 기기 거부, 선택한 내부 기기에만 호출하는 동작도 검사합니다.
@@ -227,3 +235,5 @@ GameTest는 기존 단지·홈 네트워크·호출·채팅·영상 테스트에
 텍스처·모델·조합법·번역은 직접 제작했으며, `python tools/generate_assets.py`(Pillow 필요)로 재생성할 수 있습니다.
 
 형제모델 선택기 검증은 모델 상태 변경·원본 복원·설정 유지·권한·거리·소지품·통화 중 차단·카탈로그 재로딩·기기 교체 및 잘못된 목록 거부를 포함합니다.
+
+SHT-308 검증에는 BUS 고정·흑백 변환·밝기·수화기·15초 모니터·1분 통화와 연장·외출 우회·경보 단계·전원·연결 중 공동현관 문열기가 포함됩니다.

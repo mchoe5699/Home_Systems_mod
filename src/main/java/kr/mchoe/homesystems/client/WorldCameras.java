@@ -32,6 +32,7 @@ public final class WorldCameras {
             if(!(block instanceof DeviceBlockEntity device)||!DeviceVideo.canView(device)||!entry.getValue().hasFrame()){
                 entry.getValue().close();textures.remove(entry.getKey());iterator.remove();continue;
             }
+            entry.getValue().tone(device.monochrome(),device.isSht308()?device.sht308().brightness():1,device.isSht308()?device.sht308().contrast():1);
             var texture=entry.getValue().worldTexture();if(texture!=null)textures.put(entry.getKey(),texture);
         }
         com.mojang.blaze3d.systems.RenderSystem.enableDepthTest();com.mojang.blaze3d.systems.RenderSystem.enableCull();

@@ -10,8 +10,8 @@ import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class DeviceNetwork {
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
-        new ResourceLocation(HomeSystems.MODID, "devices"), () -> "7", "7"::equals, "7"::equals);
-    public enum Action { CALL, CALL_GUARD, CALL_OTHER_GUARD, ANSWER, END, UNLOCK, HOME_LIGHTS, HOME_DOOR, HOME_GAS, HOME_OTHER, GUARD_PRESENT, GUARD_AWAY, GUARD_OUT, HANDSET, MONITOR, PANEL_HOME, TYPE_STAR, TYPE_BUS }
+        new ResourceLocation(HomeSystems.MODID, "devices"), () -> "8", "8"::equals, "8"::equals);
+    public enum Action { CALL, CALL_GUARD, CALL_OTHER_GUARD, ANSWER, END, UNLOCK, HOME_LIGHTS, HOME_DOOR, HOME_GAS, HOME_OTHER, GUARD_PRESENT, GUARD_AWAY, GUARD_OUT, HANDSET, MONITOR, PANEL_HOME, TYPE_STAR, TYPE_BUS, SHT_EMERGENCY, SHT_AWAY, SHT_ENTRANCE, SHT_POWER, SHT_VOLUME, SHT_BRIGHTNESS, SHT_CONTRAST }
     public record Request(int containerId, Action action, int building, int unit, int guard) {
         public static void encode(Request request, FriendlyByteBuf buffer) {
             buffer.writeVarInt(request.containerId).writeEnum(request.action).writeVarInt(request.building).writeVarInt(request.unit).writeVarInt(request.guard);

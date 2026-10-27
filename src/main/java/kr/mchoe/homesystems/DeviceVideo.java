@@ -14,11 +14,11 @@ import net.minecraftforge.network.PacketDistributor;
 public final class DeviceVideo {
     public static boolean hasDisplay(DeviceBlockEntity device) {
         var state = device.getBlockState();
-        return state.is(HomeSystems.VIDEO_PHONE.get()) || state.is(HomeSystems.WALLPAD.get()) || state.is(HomeSystems.GUARD_STATION.get());
+        return device.isSht308() || state.is(HomeSystems.VIDEO_PHONE.get()) || state.is(HomeSystems.WALLPAD.get()) || state.is(HomeSystems.GUARD_STATION.get());
     }
 
     public static boolean canView(DeviceBlockEntity display) {
-        return hasDisplay(display) && (display.monitoring() || display.peerHasVideo() && (display.state() == DeviceBlockEntity.RINGING || display.state() == DeviceBlockEntity.CONNECTED));
+        return display.operational() && (!display.isSht308() || display.monitoring() || display.peerIsEntrance()) && hasDisplay(display) && (display.monitoring() || display.peerHasVideo() && (display.state() == DeviceBlockEntity.RINGING || display.state() == DeviceBlockEntity.CONNECTED));
     }
 
     public static VideoFrame capture(DeviceBlockEntity source, int containerId) {
