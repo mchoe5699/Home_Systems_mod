@@ -10,8 +10,8 @@ import net.minecraftforge.network.simple.SimpleChannel;
 
 public final class DeviceNetwork {
     public static final SimpleChannel CHANNEL = NetworkRegistry.newSimpleChannel(
-        new ResourceLocation(HomeSystems.MODID, "devices"), () -> "6", "6"::equals, "6"::equals);
-    public enum Action { CALL, CALL_GUARD, CALL_OTHER_GUARD, ANSWER, END, UNLOCK, HOME_LIGHTS, HOME_DOOR, HOME_GAS, HOME_OTHER, GUARD_PRESENT, GUARD_AWAY, GUARD_OUT }
+        new ResourceLocation(HomeSystems.MODID, "devices"), () -> "7", "7"::equals, "7"::equals);
+    public enum Action { CALL, CALL_GUARD, CALL_OTHER_GUARD, ANSWER, END, UNLOCK, HOME_LIGHTS, HOME_DOOR, HOME_GAS, HOME_OTHER, GUARD_PRESENT, GUARD_AWAY, GUARD_OUT, HANDSET, MONITOR, PANEL_HOME, TYPE_STAR, TYPE_BUS }
     public record Request(int containerId, Action action, int building, int unit, int guard) {
         public static void encode(Request request, FriendlyByteBuf buffer) {
             buffer.writeVarInt(request.containerId).writeEnum(request.action).writeVarInt(request.building).writeVarInt(request.unit).writeVarInt(request.guard);
@@ -43,6 +43,7 @@ public final class DeviceNetwork {
         }
     }
     public static void register() {
+        CHANNEL.messageBuilder(WorldVideoFrame.class,5,NetworkDirection.PLAY_TO_CLIENT).encoder(WorldVideoFrame::encode).decoder(WorldVideoFrame::decode).consumerNetworkThread(WorldVideoFrame::handle).add();
         CHANNEL.messageBuilder(Request.class, 0, NetworkDirection.PLAY_TO_SERVER)
             .encoder(Request::encode).decoder(Request::decode).consumerNetworkThread(Request::handle).add();
         CHANNEL.messageBuilder(VideoFrame.class, 1, NetworkDirection.PLAY_TO_CLIENT)

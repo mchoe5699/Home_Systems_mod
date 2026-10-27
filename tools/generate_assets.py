@@ -371,3 +371,18 @@ im.save(ASSETS/'textures/item/sibling_selector.png')
 write(ASSETS/'models/item/sibling_selector.json',{'parent':'minecraft:item/generated','textures':{'layer0':'homesystems:item/sibling_selector'}})
 write(DATA/'homesystems/recipes/sibling_selector.json',{'type':'minecraft:crafting_shaped','category':'redstone','pattern':[' Q ','RCR',' I '],'key':{'Q':{'item':'minecraft:quartz'},'R':{'item':'minecraft:redstone'},'C':{'item':'minecraft:comparator'},'I':{'item':'minecraft:iron_ingot'}},'result':{'item':'homesystems:sibling_selector'}})
 write(ASSETS/'lang/ko_kr.json',ko);write(ASSETS/'lang/en_us.json',en)
+
+product_ko={'handset':'수화기 들기 / 내려놓기','handset_up':'수화기를 클릭하여 들기','handset_down':'수화기를 클릭하여 내려놓기','monitor':'현관 확인','keypad':'숫자 입력 · * 지우기 · # 다음/호출','communication_type':'통신 방식 (같은 방식끼리만 연동)'}
+product_en={'handset':'Lift / replace receiver','handset_up':'Click receiver to lift','handset_down':'Click receiver to hang up','monitor':'Entrance monitor','keypad':'Digits - * erase - # next/call','communication_type':'Communication (matching types only)'}
+for lang,extra in [(ko,product_ko),(en,product_en)]:lang.update({f'screen.homesystems.{k}':v for k,v in extra.items()})
+ko['message.homesystems.type_saved']='[홈시스템] 통신 방식을 저장했습니다. 같은 방식의 기기끼리만 연동됩니다.'
+en['message.homesystems.type_saved']='[Home Systems] Communication type saved. Only matching types can link or call.'
+ko['message.homesystems.monitor_unavailable']='[홈시스템] 같은 단지·통신 방식의 도어카메라를 홈 링크로 먼저 연결하세요.'
+en['message.homesystems.monitor_unavailable']='[Home Systems] Use Home Link to pair a door camera in the same estate with a matching communication type.'
+write(ASSETS/'lang/ko_kr.json',ko);write(ASSETS/'lang/en_us.json',en)
+import runpy
+runpy.run_path(str(Path(__file__).with_name('product_assets.py')))
+
+ko.update({'screen.homesystems.panel_guard':'경비실','screen.homesystems.panel_home':'홈 제어','screen.homesystems.panel_building':'동','screen.homesystems.panel_unit':'호'})
+en.update({'screen.homesystems.panel_guard':'Guard','screen.homesystems.panel_home':'Controls','screen.homesystems.panel_building':'Bldg','screen.homesystems.panel_unit':'Unit'})
+write(ASSETS/'lang/ko_kr.json',ko);write(ASSETS/'lang/en_us.json',en)

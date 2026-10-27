@@ -1,20 +1,21 @@
 {
   "ambientocclusion": false,
   "textures": {
-    "front": "homesystems:block/wallpad",
-    "body": "minecraft:block/smooth_stone",
-    "particle": "homesystems:block/wallpad"
+    "front": "homesystems:block/wallpad_base",
+    "body": "homesystems:block/wallpad_side",
+    "receiver": "homesystems:block/wallpad_receiver",
+    "particle": "homesystems:block/wallpad_base"
   },
   "elements": [
     {
       "from": [
-        2,
-        1,
-        13
+        0.5,
+        3,
+        14.5
       ],
       "to": [
-        14,
-        15,
+        15.5,
+        13.45,
         16
       ],
       "faces": {
@@ -82,15 +83,10 @@
         160,
         0
       ],
-      "translation": [
-        0,
-        0,
-        0
-      ],
       "scale": [
-        0.95,
-        0.95,
-        0.95
+        0.9,
+        0.9,
+        0.9
       ]
     },
     "fixed": {
@@ -98,33 +94,6 @@
         0,
         180,
         0
-      ],
-      "translation": [
-        0,
-        0,
-        -5
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ]
-    },
-    "thirdperson_righthand": {
-      "rotation": [
-        75,
-        45,
-        0
-      ],
-      "translation": [
-        0,
-        2.5,
-        0
-      ],
-      "scale": [
-        0.45,
-        0.45,
-        0.45
       ]
     },
     "firstperson_righthand": {
@@ -133,21 +102,16 @@
         135,
         0
       ],
-      "translation": [
-        0,
-        0,
-        0
-      ],
       "scale": [
         0.6,
         0.6,
         0.6
       ]
     },
-    "ground": {
-      "translation": [
-        0,
-        3,
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
         0
       ],
       "scale": [

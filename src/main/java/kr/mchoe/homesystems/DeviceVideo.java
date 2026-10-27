@@ -18,7 +18,7 @@ public final class DeviceVideo {
     }
 
     public static boolean canView(DeviceBlockEntity display) {
-        return hasDisplay(display) && display.peerHasVideo() && (display.state() == DeviceBlockEntity.RINGING || display.state() == DeviceBlockEntity.CONNECTED);
+        return hasDisplay(display) && (display.monitoring() || display.peerHasVideo() && (display.state() == DeviceBlockEntity.RINGING || display.state() == DeviceBlockEntity.CONNECTED));
     }
 
     public static VideoFrame capture(DeviceBlockEntity source, int containerId) {
@@ -68,13 +68,16 @@ public final class DeviceVideo {
 
     public static void tick(DeviceBlockEntity display) {
         if (!canView(display) || !(display.getLevel() instanceof ServerLevel level)) return;
-        DeviceBlockEntity source = display.peer();
+        DeviceBlockEntity source = display.monitoring() ? display.monitorSource() : display.peer();
         if (source == null || !DeviceRouting.videoSource(source) || !DeviceRouting.allowed(source, display)) return;
-        var viewers = level.players().stream().filter(player -> player.containerMenu instanceof DeviceMenu menu
-            && menu.device() == display && menu.stillValid(player)).toList();
-        if (viewers.isEmpty()) return;
-        VideoFrame frame = capture(source, 0);
-        for (var viewer : viewers) DeviceNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(() -> viewer),
-            new VideoFrame(viewer.containerMenu.containerId, frame.facing(), frame.time(), frame.blocks(), frame.actors()));
+        var viewers = level.players().stream().filter(player -> EstateData.playerMayUse(player,display)
+            && player.distanceToSqr(display.getBlockPos().getX()+.5,display.getBlockPos().getY()+.5,display.getBlockPos().getZ()+.5)<=256).toList();
+        if(viewers.isEmpty())return;
+        VideoFrame frame=capture(source,0);
+        for(var viewer:viewers){
+            DeviceNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->viewer),new WorldVideoFrame(display.getBlockPos(),frame));
+            if(viewer.containerMenu instanceof DeviceMenu menu&&menu.device()==display&&menu.stillValid(viewer))
+                DeviceNetwork.CHANNEL.send(PacketDistributor.PLAYER.with(()->viewer),new VideoFrame(menu.containerId,frame.facing(),frame.time(),frame.blocks(),frame.actors()));
+        }
     }
 }

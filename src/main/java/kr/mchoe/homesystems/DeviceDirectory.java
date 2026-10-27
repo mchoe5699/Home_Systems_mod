@@ -18,7 +18,7 @@ import net.minecraft.world.level.saveddata.SavedData;
 public final class DeviceDirectory extends SavedData {
     private final Map<String, GlobalPos> addresses = new HashMap<>();
     private final java.util.Set<GlobalPos> devices = new java.util.LinkedHashSet<>();
-    private record GuardInfo(int number, int presence) {}
+    private record GuardInfo(int number, int presence, int type) {}
     private final Map<GlobalPos, GuardInfo> guardInfo = new HashMap<>();
 
     public static DeviceDirectory get(MinecraftServer server) {
@@ -44,7 +44,7 @@ public final class DeviceDirectory extends SavedData {
         for (Tag value : tag.getList("GuardPresence", Tag.TAG_COMPOUND)) {
             CompoundTag entry=(CompoundTag)value;ResourceLocation dimension=ResourceLocation.tryParse(entry.getString("Dimension"));
             int number=entry.getInt("Number"),presence=entry.getInt("Presence");
-            if(dimension!=null&&DeviceRouting.valid(number)&&presence>=0&&presence<=2)directory.guardInfo.put(GlobalPos.of(ResourceKey.create(Registries.DIMENSION,dimension),BlockPos.of(entry.getLong("Pos"))),new GuardInfo(number,presence));
+            if(dimension!=null&&DeviceRouting.valid(number)&&presence>=0&&presence<=2)directory.guardInfo.put(GlobalPos.of(ResourceKey.create(Registries.DIMENSION,dimension),BlockPos.of(entry.getLong("Pos"))),new GuardInfo(number,presence,entry.getInt("Type")==1?1:0));
         }
         return directory;
     }
@@ -65,7 +65,7 @@ public final class DeviceDirectory extends SavedData {
         }
         tag.put("RegisteredDevices", registered);
         ListTag presence=new ListTag();guardInfo.forEach((pos,info)->{
-            CompoundTag entry=new CompoundTag();entry.putString("Dimension",pos.dimension().location().toString());entry.putLong("Pos",pos.pos().asLong());entry.putInt("Number",info.number);entry.putInt("Presence",info.presence);presence.add(entry);
+            CompoundTag entry=new CompoundTag();entry.putString("Dimension",pos.dimension().location().toString());entry.putLong("Pos",pos.pos().asLong());entry.putInt("Number",info.number);entry.putInt("Presence",info.presence);entry.putInt("Type",info.type);presence.add(entry);
         });tag.put("GuardPresence",presence);
         return tag;
     }
@@ -93,13 +93,19 @@ public final class DeviceDirectory extends SavedData {
     public void registerAddress(DeviceBlockEntity device) {
         addresses.values().removeIf(pos -> pos.equals(device.location()));
         devices.add(device.location());setDirty();
-        if(DeviceRouting.guard(device))guardInfo.put(device.location(),new GuardInfo(device.guardNumber(),device.guardPresence()));
+        if(DeviceRouting.guard(device))guardInfo.put(device.location(),new GuardInfo(device.guardNumber(),device.guardPresence(),device.communicationType()));
         else guardInfo.remove(device.location());
+    }
+    public DeviceBlockEntity cameraFor(DeviceBlockEntity indoor){
+        if(!(indoor.getLevel() instanceof net.minecraft.server.level.ServerLevel level))return null;
+        return devices.stream().map(pos->resolve(level.getServer(),pos)).filter(java.util.Objects::nonNull)
+            .filter(d->d.getBlockState().is(HomeSystems.DOOR_CAMERA.get())&&d.links().isLinked(indoor)&&DeviceRouting.allowed(d,indoor))
+            .min(java.util.Comparator.comparingDouble(d->d.getBlockPos().distSqr(indoor.getBlockPos()))).orElse(null);
     }
     public boolean canBypass(DeviceBlockEntity caller) {
         if(!caller.addressConfigured()||!(caller.getLevel() instanceof net.minecraft.server.level.ServerLevel level))return false;
         var estate=EstateData.get(level.getServer());String dim=level.dimension().location().toString();
-        var own=guardInfo.entrySet().stream().filter(e->e.getValue().number==caller.guardNumber()
+        var own=guardInfo.entrySet().stream().filter(e->e.getValue().number==caller.guardNumber()&&e.getValue().type==caller.communicationType()
             &&estate.same(dim,caller.getBlockPos(),e.getKey().dimension().location().toString(),e.getKey().pos())).toList();
         return !own.isEmpty()&&own.stream().allMatch(e->e.getValue().presence!=DeviceBlockEntity.GUARD_PRESENT);
     }

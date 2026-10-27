@@ -3,7 +3,7 @@ plugins {
     id 'net.minecraftforge.gradle' version '6.0.54'
 }
 
-version = '1.5.0'
+version = '1.6.0'
 group = 'kr.mchoe.homesystems'
 base { archivesName = 'homesystems-1.20.1-forge' }
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)
@@ -20,6 +20,7 @@ minecraft {
         client {}
         server { args '--nogui' }
         gameTestServer {
+            workingDirectory project.file('run-gametest')
             property 'forge.enabledGameTestNamespaces', 'homesystems'
         }
     }
@@ -37,3 +38,9 @@ jar {
     ])
     finalizedBy 'reobfJar'
 }
+
+// Tests own this isolated generated world; never reset a client or normal server save.
+def resetGameTestWorld = tasks.register('resetGameTestWorld', Delete) {
+    delete layout.projectDirectory.dir('run-gametest/world')
+}
+tasks.matching { it.name == 'runGameTestServer' }.configureEach { dependsOn resetGameTestWorld }

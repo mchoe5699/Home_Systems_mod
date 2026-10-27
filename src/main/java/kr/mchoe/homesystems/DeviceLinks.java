@@ -42,7 +42,7 @@ public final class DeviceLinks {
     }
     public boolean linkHome(DeviceBlockEntity indoor){
         if(!(owner.getLevel() instanceof ServerLevel)||!DeviceRouting.door(owner)||!DeviceRouting.indoor(indoor)||!indoor.addressConfigured()
-            ||owner.state()!=DeviceBlockEntity.IDLE||indoor.state()!=DeviceBlockEntity.IDLE||!EstateData.same(owner,indoor)
+            ||owner.communicationType()!=indoor.communicationType()||owner.state()!=DeviceBlockEntity.IDLE||indoor.state()!=DeviceBlockEntity.IDLE||!EstateData.same(owner,indoor)
             ||owner.getBlockPos().distSqr(indoor.getBlockPos())>RANGE*RANGE||!homes.containsKey(indoor.getBlockPos())&&homes.size()>=MAX_LINKS)return false;
         boolean changedHome=owner.addressConfigured()&&(owner.guardNumber()!=indoor.guardNumber()||!DeviceRouting.sameHome(owner,indoor));
         if(!owner.configureAddress(indoor.guardNumber(),indoor.buildingNumber(),indoor.unitNumber()))return false;
@@ -50,7 +50,7 @@ public final class DeviceLinks {
         homes.put(indoor.getBlockPos().immutable(),indoor.homeNetwork().id());owner.changed();return true;
     }
     public boolean isLinked(DeviceBlockEntity indoor){
-        return indoor!=null&&DeviceRouting.indoor(indoor)&&owner.getLevel()==indoor.getLevel()&&indoor.homeNetwork().id().equals(homes.get(indoor.getBlockPos()))
+        return indoor!=null&&owner.communicationType()==indoor.communicationType()&&DeviceRouting.indoor(indoor)&&owner.getLevel()==indoor.getLevel()&&indoor.homeNetwork().id().equals(homes.get(indoor.getBlockPos()))
             &&owner.addressConfigured()&&indoor.addressConfigured()&&owner.guardNumber()==indoor.guardNumber()&&DeviceRouting.sameHome(owner,indoor)&&EstateData.same(owner,indoor);
     }
     public boolean unlinkHome(DeviceBlockEntity indoor){

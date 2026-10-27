@@ -1,137 +1,151 @@
 package kr.mchoe.homesystems.client;
 
+import java.util.*;
 import kr.mchoe.homesystems.*;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.components.*;
 import net.minecraft.client.gui.screens.ChatScreen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
 
+/** The product's own face is the control surface; administrative settings are a separate page. */
 public final class DeviceScreen extends AbstractContainerScreen<DeviceMenu> {
-    private EditBox targetBuilding, targetUnit, targetGuard, settingGuard, settingBuilding, settingUnit;
-    private Button settings, saveSettings, back, call, priorityGuard, otherGuard, answer, end, unlock, chat, videoTab, homeTab;
-    private final Button[] homeButtons = new Button[4];
-    private final Button[] presenceButtons = new Button[3];
-    private final CameraView camera = new CameraView();
-    private boolean videoMode, homeMode, settingsMode;
-    private String loadedAddress = "";
-    private static final int WHITE = 0xEAF2F8, MUTED = 0x99B0C0, ACCENT = 0x56D7BE;
-    public DeviceScreen(DeviceMenu menu, Inventory inventory, Component title) { super(menu, inventory, title); imageWidth = 320; imageHeight = 234; }
-    private static Component tr(String key) { return Component.translatable("screen.homesystems." + key); }
-    private EditBox numeric(String label, int x, int y, int width) {
-        var box = new EditBox(font, leftPos + x, topPos + y, width, 18, tr(label));box.setMaxLength(4);box.setFilter(v -> v.matches("[0-9]{0,4}"));addRenderableWidget(box);return box;
+    private final CameraView camera=new CameraView();
+    private final List<AbstractWidget> faceControls=new ArrayList<>(),settingsControls=new ArrayList<>();
+    private final List<EditBox> fields=new ArrayList<>();
+    private final Map<DeviceNetwork.Action,List<AbstractWidget>> actions=new EnumMap<>(DeviceNetwork.Action.class);
+    private EditBox building,unit,guard,ownGuard,ownBuilding,ownUnit;
+    private Button settings,back,save,star,bus,chat;
+    private String loadedAddress="";
+    private ProductDesign design;private boolean settingsMode;private int px,py,pw,ph;
+    public DeviceScreen(DeviceMenu menu,Inventory inventory,Component title){super(menu,inventory,title);imageWidth=400;imageHeight=234;}
+    private static Component tr(String key){return Component.translatable("screen.homesystems."+key);}
+    public CameraView camera(){return camera;}
+    private int x(int value){return leftPos+px+value*pw/256;}private int y(int value){return topPos+py+value*ph/256;}
+    private int w(int value){return Math.max(9,value*pw/256);}private int h(int value){return Math.max(10,value*ph/256);}
+    private void send(DeviceNetwork.Action action){DeviceNetwork.CHANNEL.sendToServer(new DeviceNetwork.Request(menu.containerId,action,value(building),value(unit),value(guard)));}
+    private static int value(EditBox field){try{return Integer.parseInt(field.getValue());}catch(Exception e){return -1;}}
+    private EditBox numeric(String label,int x,int y,int width,List<AbstractWidget> group){
+        var field=new EditBox(font,x,y,width,18,tr(label));field.setMaxLength(4);field.setFilter(v->v.matches("[0-9]{0,4}"));addRenderableWidget(field);fields.add(field);group.add(field);return field;
     }
-    private static int value(EditBox box) { try { return Integer.parseInt(box.getValue()); } catch (NumberFormatException ignored) { return -1; } }
-    private Button action(String label, int x, int y, int width, DeviceNetwork.Action action) {
-        return addRenderableWidget(Button.builder(tr(label), b -> DeviceNetwork.CHANNEL.sendToServer(new DeviceNetwork.Request(menu.containerId, action, value(targetBuilding), value(targetUnit), value(targetGuard))))
-            .bounds(leftPos + x, topPos + y, width, 20).build());
-    }
-    @Override protected void init() {
-        super.init();
-        targetBuilding = numeric("dial_building", 20, 121, 80);targetUnit = numeric("dial_unit", 120, 121, 80);targetGuard = numeric("dial_guard", 220, 121, 80);
-        settingGuard = numeric("assigned_guard", 20, 112, 80);settingBuilding = numeric("building", 120, 112, 80);settingUnit = numeric("unit", 220, 112, 80);
-        settings = addRenderableWidget(Button.builder(tr("address_settings"), b -> {
-            settingsMode = true;homeMode = videoMode = false;loadSettings();updateButtons();
-        }).bounds(leftPos + 20, topPos + 84, 280, 20).build());
-        saveSettings = addRenderableWidget(Button.builder(tr("save_address"), b -> {
-            var d = menu.device();boolean guard = d != null && DeviceRouting.guard(d);
-            DeviceNetwork.CHANNEL.sendToServer(new DeviceNetwork.AddressRequest(menu.containerId, value(settingGuard), guard ? 0 : value(settingBuilding), guard ? 0 : value(settingUnit)));
-        }).bounds(leftPos + 20, topPos + 146, 280, 20).build());
-        back = addRenderableWidget(Button.builder(tr("back"), b -> { settingsMode = false;updateButtons(); }).bounds(leftPos + 20, topPos + 174, 280, 20).build());
-        call = action("call_home",20,145,134,DeviceNetwork.Action.CALL);
-        priorityGuard = action("priority_guard",164,145,136,DeviceNetwork.Action.CALL_GUARD);
-        otherGuard = action("other_guard",20,170,280,DeviceNetwork.Action.CALL_OTHER_GUARD);
-        answer = action("answer",20,205,68,DeviceNetwork.Action.ANSWER);end = action("end",94,205,68,DeviceNetwork.Action.END);unlock = action("unlock",168,205,68,DeviceNetwork.Action.UNLOCK);
-        chat = addRenderableWidget(Button.builder(tr("chat"), b -> { onClose();minecraft.setScreen(new ChatScreen("")); }).bounds(leftPos + 242, topPos + 205, 58, 20).build());
-        videoTab = addRenderableWidget(Button.builder(tr("video_tab"), b -> { videoMode = !videoMode;homeMode = settingsMode = false;updateButtons(); }).bounds(leftPos + 200, topPos + 12, 100, 20).build());
-        homeTab = addRenderableWidget(Button.builder(tr("home_tab"), b -> { homeMode = !homeMode;videoMode = settingsMode = false;updateButtons(); }).bounds(leftPos + 104, topPos + 12, 90, 20).build());
-        var actions = new DeviceNetwork.Action[]{DeviceNetwork.Action.HOME_LIGHTS,DeviceNetwork.Action.HOME_DOOR,DeviceNetwork.Action.HOME_GAS,DeviceNetwork.Action.HOME_OTHER};
-        for(int i=0;i<4;i++)homeButtons[i]=action("home_on",199,72+i*30,91,actions[i]);
-        var presenceActions=new DeviceNetwork.Action[]{DeviceNetwork.Action.GUARD_PRESENT,DeviceNetwork.Action.GUARD_AWAY,DeviceNetwork.Action.GUARD_OUT};
-        for(int i=0;i<3;i++)presenceButtons[i]=action("presence_"+i,20+i*96,170,88,presenceActions[i]);
-        for(var box:new EditBox[]{targetBuilding,targetUnit,targetGuard,settingGuard,settingBuilding,settingUnit})box.setResponder(ignored->updateButtons());
-        loadedAddress = "";loadSettings();updateButtons();
-    }
-    private void loadSettings() {
-        var d = menu.device();
-        settingGuard.setValue(d != null && d.addressConfigured() ? Integer.toString(d.guardNumber()) : "");
-        settingBuilding.setValue(d != null && d.addressConfigured() ? Integer.toString(d.buildingNumber()) : "");
-        settingUnit.setValue(d != null && d.addressConfigured() ? Integer.toString(d.unitNumber()) : "");
-    }
-    public CameraView camera() { return camera; }
-    private void updateButtons() {
-        var d = menu.device();boolean present = d != null && minecraft.player != null;
-        boolean guard = present && DeviceRouting.guard(d), door = present && DeviceRouting.door(d);
-        boolean owner = present && d.canConfigure(minecraft.player), idle = present && d.state()==DeviceBlockEntity.IDLE;
-        boolean main = !homeMode && !videoMode && !settingsMode;
-        videoTab.visible = present && DeviceVideo.hasDisplay(d);homeTab.visible = present && d.homeNetwork().isWallpad();
-        videoTab.setMessage(tr(videoMode?"controls_tab":"video_tab"));homeTab.setMessage(tr(homeMode?"controls_tab":"home_tab"));
-        settings.visible = call.visible = priorityGuard.visible = otherGuard.visible = targetBuilding.visible = targetUnit.visible = targetGuard.visible = main;
-        otherGuard.visible=main&&!guard;targetGuard.visible=main&&!guard;
-        for(int i=0;i<3;i++){presenceButtons[i].visible=main&&guard;presenceButtons[i].active=owner&&d.addressConfigured()&&d.guardPresence()!=i;}
-        settings.setMessage(tr(guard?"guard_settings":"address_settings"));settings.active = owner && idle;
-        targetBuilding.setEditable(!door);targetUnit.setEditable(!door);
-        saveSettings.visible = back.visible = settingGuard.visible = settingsMode;
-        settingBuilding.visible = settingUnit.visible = settingsMode && !guard;
-        settingGuard.setEditable(owner && idle);settingBuilding.setEditable(owner && idle);settingUnit.setEditable(owner && idle);
-        answer.visible = end.visible = unlock.visible = chat.visible = !homeMode && !settingsMode;
-        for(int i=0;i<4;i++){
-            homeButtons[i].visible=homeMode;homeButtons[i].active=present&&owner&&d.homeNetwork().count(i)>0;
-            boolean on=present&&d.homeNetwork().enabled(i);homeButtons[i].setMessage(tr(i==2?(on?"gas_off":"gas_on"):(on?"home_off":"home_on")));
-        }
-        if(!present)return;
-        String address=d.addressConfigured()+":"+d.guardNumber()+":"+d.buildingNumber()+":"+d.unitNumber();
-        if(!address.equals(loadedAddress)){
-            loadedAddress=address;
-            if(d.addressConfigured()){
-                targetBuilding.setValue(d.buildingNumber()==9999&&!door?"":Integer.toString(d.buildingNumber()));
-                targetUnit.setValue(Integer.toString(d.unitNumber()));targetGuard.setValue("");
+    private void hotspot(String label,int x,int y,int width,int height,Runnable run,DeviceNetwork.Action action){
+        var button=new AbstractButton(x(x),y(y),w(width),h(height),tr(label)){
+            @Override public void onPress(){run.run();}
+            @Override protected void updateWidgetNarration(net.minecraft.client.gui.narration.NarrationElementOutput output){defaultButtonNarrationText(output);}
+            @Override protected void renderWidget(GuiGraphics g,int mx,int my,float partial){
+                if(isHoveredOrFocused()){g.fill(getX(),getY(),getX()+getWidth(),getY()+getHeight(),0x6686c8ef);g.renderOutline(getX(),getY(),getWidth(),getHeight(),0xffb9efff);}
             }
+        };
+        button.setTooltip(Tooltip.create(tr(label)));addRenderableWidget(button);faceControls.add(button);if(action!=null)actions.computeIfAbsent(action,a->new ArrayList<>()).add(button);
+    }
+    private void hot(String label,int x,int y,int width,int height,DeviceNetwork.Action action){hotspot(label,x,y,width,height,()->send(action),action);}
+    private void screenButton(String label,int x,int y,int width,int height,DeviceNetwork.Action action){
+        var button=new AbstractButton(x(x),y(y),w(width),h(height),tr(label)){
+            @Override public void onPress(){send(action);}
+            @Override protected void updateWidgetNarration(net.minecraft.client.gui.narration.NarrationElementOutput output){defaultButtonNarrationText(output);}
+            @Override protected void renderWidget(GuiGraphics g,int mx,int my,float partial){
+                var device=menu.device();boolean network=action.ordinal()>=DeviceNetwork.Action.HOME_LIGHTS.ordinal()&&action.ordinal()<=DeviceNetwork.Action.HOME_OTHER.ordinal();
+                boolean on=network&&device!=null&&device.homeNetwork().enabled(action.ordinal()-DeviceNetwork.Action.HOME_LIGHTS.ordinal());
+                int color=!active?0xff25323b:isHoveredOrFocused()?0xff397b85:on?0xff327e72:0xff204c5e;
+                g.fill(getX()+1,getY(),getX()+getWidth()-1,getY()+getHeight(),color);g.fill(getX(),getY()+1,getX()+getWidth(),getY()+getHeight()-1,color);
+                String shortKey=switch(label){case "priority_guard"->"panel_guard";case "home_tab"->"panel_home";default->label;};
+                var text=tr(shortKey);if(network)text=text.copy().append(on?" ON":" OFF");float scale=Math.min(.85f,(getWidth()-4f)/Math.max(1,font.width(text)));
+                g.pose().pushPose();g.pose().translate(getX()+getWidth()/2f,getY()+getHeight()/2f-4*scale,0);g.pose().scale(scale,scale,1);g.drawString(font,text,-font.width(text)/2,0,active?0xe0f0f5:0x788c98,false);g.pose().popPose();
+            }
+        };
+        button.setTooltip(Tooltip.create(tr(label)));addRenderableWidget(button);faceControls.add(button);actions.computeIfAbsent(action,a->new ArrayList<>()).add(button);
+    }
+    @Override protected void init(){
+        super.init();faceControls.clear();settingsControls.clear();fields.clear();actions.clear();var d=menu.device();design=d==null?ProductDesign.WALLPAD:ProductDesign.of(d.getBlockState());
+        ph=178;pw=Math.min(350,Math.round(ph*design.width()/design.height()));px=(400-pw)/2;py=23;
+        settings=addRenderableWidget(Button.builder(tr(design==ProductDesign.GUARD?"guard_settings":"address_settings"),b->{settingsMode=true;loadSettings();updateControls();}).bounds(leftPos+8,topPos+212,280,20).build());
+        chat=addRenderableWidget(Button.builder(tr("chat"),b->{onClose();minecraft.setScreen(new ChatScreen(""));}).bounds(leftPos+294,topPos+212,98,20).build());
+        ownGuard=numeric("assigned_guard",leftPos+24,topPos+72,100,settingsControls);ownBuilding=numeric("building",leftPos+150,topPos+72,100,settingsControls);ownUnit=numeric("unit",leftPos+276,topPos+72,100,settingsControls);
+        save=Button.builder(tr("save_address"),b->DeviceNetwork.CHANNEL.sendToServer(new DeviceNetwork.AddressRequest(menu.containerId,value(ownGuard),design==ProductDesign.GUARD?0:value(ownBuilding),design==ProductDesign.GUARD?0:value(ownUnit)))).bounds(leftPos+24,topPos+102,352,20).build();settingsControls.add(addRenderableWidget(save));
+        star=Button.builder(Component.literal("STAR"),b->send(DeviceNetwork.Action.TYPE_STAR)).bounds(leftPos+24,topPos+146,100,20).build();bus=Button.builder(Component.literal("BUS"),b->send(DeviceNetwork.Action.TYPE_BUS)).bounds(leftPos+136,topPos+146,100,20).build();settingsControls.add(addRenderableWidget(star));settingsControls.add(addRenderableWidget(bus));
+        guard=numeric("dial_guard",leftPos+24,topPos+178,100,settingsControls);
+        var other=Button.builder(tr("other_guard"),b->send(DeviceNetwork.Action.CALL_OTHER_GUARD)).bounds(leftPos+136,topPos+178,240,20).build();settingsControls.add(addRenderableWidget(other));actions.put(DeviceNetwork.Action.CALL_OTHER_GUARD,List.of(other));
+        back=addRenderableWidget(Button.builder(tr("back"),b->{settingsMode=false;updateControls();}).bounds(leftPos+8,topPos+212,280,20).build());
+        building=numeric("dial_building",x(design==ProductDesign.LOBBY?31:84),y(design==ProductDesign.LOBBY?58:62),w(design==ProductDesign.LOBBY?65:61),faceControls);
+        unit=numeric("dial_unit",x(design==ProductDesign.LOBBY?31:154),y(design==ProductDesign.LOBBY?98:62),w(design==ProductDesign.LOBBY?65:65),faceControls);
+        if(design==ProductDesign.LOBBY||design==ProductDesign.GUARD){
+            for(int row=0;row<4;row++)for(int col=0;col<3;col++){
+                String key=row==3?new String[]{"*","0","#"}[col]:Integer.toString(row*3+col+1);
+                int kx=design==ProductDesign.LOBBY?151+col*24:77+col*24,ky=design==ProductDesign.LOBBY?88+row*24:143+row*20;
+                hotspot("keypad",kx,ky,22,20,()->{EditBox target=building.isFocused()?building:unit;if(key.equals("*")){String v=target.getValue();target.setValue(v.isEmpty()?v:v.substring(0,v.length()-1));}else if(key.equals("#")){if(building.isFocused()){building.setFocused(false);unit.setFocused(true);}else send(DeviceNetwork.Action.CALL);}else if(target.getValue().length()<4)target.setValue(target.getValue()+key);},null);
+            }
+            hot("call_home",design==ProductDesign.LOBBY?181:170,design==ProductDesign.LOBBY?187:164,47,54,DeviceNetwork.Action.CALL);
+            if(design==ProductDesign.LOBBY){screenButton("priority_guard",26,168,87,24,DeviceNetwork.Action.CALL_GUARD);screenButton("end",26,198,87,24,DeviceNetwork.Action.END);}
+            else {screenButton("presence_0",79,96,49,23,DeviceNetwork.Action.GUARD_PRESENT);screenButton("presence_1",132,96,49,23,DeviceNetwork.Action.GUARD_AWAY);screenButton("presence_2",185,96,49,23,DeviceNetwork.Action.GUARD_OUT);}
         }
-        boolean valid = DeviceRouting.valid(value(settingGuard)) && (guard || DeviceRouting.valid(value(settingBuilding))&&DeviceRouting.valid(value(settingUnit)));
-        boolean saved = d.addressConfigured() && value(settingGuard)==d.guardNumber() && (guard||value(settingBuilding)==d.buildingNumber()&&value(settingUnit)==d.unitNumber());
-        saveSettings.active=owner&&idle&&valid&&!saved;saveSettings.setMessage(tr(saved?"address_saved_button":"save_address"));
-        call.active=idle&&d.addressConfigured()&&(!guard||d.guardPresence()==DeviceBlockEntity.GUARD_PRESENT)&&(door||DeviceRouting.valid(value(targetBuilding))&&DeviceRouting.valid(value(targetUnit)));
-        call.setMessage(tr(door?"ring_doorbell":"call_home"));
-        priorityGuard.active=idle&&d.addressConfigured()&&!guard;otherGuard.active=idle&&d.addressConfigured()&&DeviceRouting.valid(value(targetGuard))&&value(targetGuard)!=d.guardNumber()&&d.canCallAlternateGuard();
-        answer.active=d.state()==DeviceBlockEntity.RINGING;end.active=!idle;unlock.active=owner&&(d.links().doorCount()>0||d.state()==DeviceBlockEntity.CONNECTED);chat.active=d.state()==DeviceBlockEntity.CONNECTED;
+        if(design.handset){hot("handset",design==ProductDesign.INTERPHONE?50:10,8,design==ProductDesign.INTERPHONE?151:48,design==ProductDesign.INTERPHONE?175:227,DeviceNetwork.Action.HANDSET);}
+        if(design==ProductDesign.INTERPHONE){hot("priority_guard",79,184,100,24,DeviceNetwork.Action.CALL_GUARD);hot("unlock",79,211,100,28,DeviceNetwork.Action.UNLOCK);}
+        if(design==ProductDesign.VIDEO){hot("monitor",85,187,27,36,DeviceNetwork.Action.MONITOR);hot("priority_guard",126,187,27,36,DeviceNetwork.Action.CALL_GUARD);hot("unlock",167,187,27,36,DeviceNetwork.Action.UNLOCK);hotspot("address_settings",208,187,27,36,()->{settingsMode=true;loadSettings();updateControls();},null);}
+        if(design==ProductDesign.WALLPAD){
+            screenButton("monitor",30,135,63,31,DeviceNetwork.Action.MONITOR);screenButton("priority_guard",98,135,63,31,DeviceNetwork.Action.CALL_GUARD);screenButton("home_tab",166,135,63,31,DeviceNetwork.Action.PANEL_HOME);
+            screenButton("answer",30,174,63,31,DeviceNetwork.Action.ANSWER);screenButton("unlock",98,174,63,31,DeviceNetwork.Action.UNLOCK);screenButton("end",166,174,63,31,DeviceNetwork.Action.END);
+            var aa=new DeviceNetwork.Action[]{DeviceNetwork.Action.HOME_LIGHTS,DeviceNetwork.Action.HOME_DOOR,DeviceNetwork.Action.HOME_GAS,DeviceNetwork.Action.HOME_OTHER};
+            for(int i=0;i<4;i++)screenButton("channel_"+new String[]{"lights","door","gas","other"}[i],30+(i%2)*103,55+(i/2)*44,92,34,aa[i]);
+        }
+        if(design==ProductDesign.CAMERA||design==ProductDesign.DOOR){screenButton("ring_doorbell",50,180,156,35,DeviceNetwork.Action.CALL);}
+        if(design==ProductDesign.GUARD){screenButton("unlock",150,219,84,25,DeviceNetwork.Action.UNLOCK);}
+        loadSettings();if(d!=null&&d.addressConfigured()){building.setValue(d.buildingNumber()==9999?"":Integer.toString(d.buildingNumber()));unit.setValue(Integer.toString(d.unitNumber()));}
+        for(var field:fields)field.setResponder(v->updateControls());updateControls();
+    }
+    private void loadSettings(){var d=menu.device();ownGuard.setValue(d!=null&&d.addressConfigured()?""+d.guardNumber():"");ownBuilding.setValue(d!=null&&d.addressConfigured()?""+d.buildingNumber():"");ownUnit.setValue(d!=null&&d.addressConfigured()?""+d.unitNumber():"");}
+    private void updateControls(){
+        if(settings==null)return;var d=menu.device();boolean present=d!=null&&minecraft.player!=null;if(!present)return;boolean owner=d.canConfigure(minecraft.player),idle=d.state()==0;
+        String address=d.addressConfigured()+":"+d.buildingNumber()+":"+d.unitNumber();
+        if(!address.equals(loadedAddress)){loadedAddress=address;if(d.addressConfigured()){building.setValue(d.buildingNumber()==9999?"":Integer.toString(d.buildingNumber()));unit.setValue(Integer.toString(d.unitNumber()));}}
+        for(var a:faceControls)a.visible=!settingsMode;for(var a:settingsControls)a.visible=settingsMode;
+        chat.active=d.state()==DeviceBlockEntity.CONNECTED;settings.visible=!settingsMode;settings.active=owner&&idle;back.visible=settingsMode;ownBuilding.visible=ownUnit.visible=settingsMode&&design!=ProductDesign.GUARD;
+        boolean dialing=(design==ProductDesign.LOBBY||design==ProductDesign.GUARD)&&idle;
+        building.visible=unit.visible=!settingsMode&&dialing;save.active=owner&&idle&&DeviceRouting.valid(value(ownGuard))&&(design==ProductDesign.GUARD||DeviceRouting.valid(value(ownBuilding))&&DeviceRouting.valid(value(ownUnit)));
+        star.active=owner&&idle&&d.communicationType()!=0;bus.active=owner&&idle&&d.communicationType()!=1;guard.visible=settingsMode&&design!=ProductDesign.GUARD;
+        for(var a:actions.entrySet())for(var widget:a.getValue()){
+            boolean active=switch(a.getKey()){
+                case CALL->idle&&d.addressConfigured()&&(design!=ProductDesign.GUARD||d.guardPresence()==DeviceBlockEntity.GUARD_PRESENT)&&(DeviceRouting.door(d)||DeviceRouting.valid(value(building))&&DeviceRouting.valid(value(unit)));
+                case CALL_GUARD->idle&&d.addressConfigured()&&design!=ProductDesign.GUARD;
+                case CALL_OTHER_GUARD->idle&&d.addressConfigured()&&DeviceRouting.valid(value(guard))&&value(guard)!=d.guardNumber()&&d.canCallAlternateGuard();
+                case ANSWER->d.state()==DeviceBlockEntity.RINGING;
+                case END->!idle||d.monitoring();
+                case UNLOCK->owner&&(d.links().doorCount()>0||d.state()==DeviceBlockEntity.CONNECTED);
+                case MONITOR->owner&&idle;
+                case HOME_LIGHTS,HOME_DOOR,HOME_GAS,HOME_OTHER->owner&&d.homeNetwork().count(a.getKey().ordinal()-DeviceNetwork.Action.HOME_LIGHTS.ordinal())>0;
+                case GUARD_PRESENT,GUARD_AWAY,GUARD_OUT->owner&&d.addressConfigured()&&d.guardPresence()!=a.getKey().ordinal()-DeviceNetwork.Action.GUARD_PRESENT.ordinal();
+                default->true;
+            };widget.active=active;
+            if(a.getKey()==DeviceNetwork.Action.CALL_OTHER_GUARD)widget.visible=settingsMode&&design!=ProductDesign.GUARD;
+            if(a.getKey().ordinal()>=DeviceNetwork.Action.HOME_LIGHTS.ordinal()&&a.getKey().ordinal()<=DeviceNetwork.Action.HOME_OTHER.ordinal())widget.visible=!settingsMode&&d.panelPage()==1;
+        }
         if(!DeviceVideo.canView(d))camera.clear();
     }
-    @Override public void containerTick(){super.containerTick();for(var box:new EditBox[]{targetBuilding,targetUnit,targetGuard,settingGuard,settingBuilding,settingUnit})box.tick();updateButtons();}
+    @Override protected void containerTick(){super.containerTick();fields.forEach(EditBox::tick);updateControls();}
     @Override protected void renderBg(GuiGraphics g,float partial,int mx,int my){
-        int x=leftPos,y=topPos;g.fill(x-2,y-2,x+322,y+236,0xFF4F697A);g.fill(x,y,x+320,y+234,0xFF152330);g.fill(x,y,x+320,y+44,0xFF223B4A);g.fill(x,y,x+4,y+44,0xFF56D7BE);
-        if(homeMode){for(int i=0;i<4;i++)g.fill(x+20,y+68+i*30,x+300,y+96+i*30,0xFF0B1720);}
-        else if(videoMode){g.fill(x+18,y+48,x+302,y+200,0xFF050B10);camera.render(g,x+20,y+50,280,148);}
-        else g.fill(x+20,y+50,x+300,y+78,0xFF0B1720);
+        g.fill(leftPos,topPos,leftPos+400,topPos+234,0xee101922);var d=menu.device();if(d==null)return;
+        if(settingsMode){g.fill(leftPos+12,topPos+28,leftPos+388,topPos+205,0xff243747);return;}
+        var texture=new ResourceLocation(HomeSystems.MODID,"textures/block/"+design.id+(d.offHook()?"_offhook":"")+".png");g.blit(texture,leftPos+px,topPos+py,pw,ph,0,0,256,256,256,256);
+        if(design.sx!=design.ex){
+            int sx=x(design.sx),sy=y(design.sy),sw=w(design.ex-design.sx),sh=h(design.ey-design.sy);
+            g.fill(sx,sy,sx+sw,sy+sh,0xff0a1821);
+            if(DeviceVideo.canView(d)&&camera.hasFrame())camera.render(g,sx,sy,sw,sh);
+            else if(design==ProductDesign.WALLPAD){g.drawString(font,Component.literal(String.format("%02d:%02d",(d.getLevel().getDayTime()/1000+6)%24,d.getLevel().getDayTime()%1000*60/1000)),sx+8,sy+10,0xffffff,false);}
+            if(d.state()!=0||d.monitoring())g.drawString(font,tr(d.monitoring()?"monitor":d.state()==1?"outgoing":d.state()==2?"ringing":"connected"),sx+3,sy+3,0x83e0ca,true);
+        }
+        // Replaceable logo texture, separate from the product's printed face.
+        g.blit(new ResourceLocation(HomeSystems.MODID,"textures/logo/"+design.id+".png"),x(83),y(239),w(90),h(10),0,0,128,16,128,16);
     }
     @Override protected void renderLabels(GuiGraphics g,int mx,int my){
-        g.drawString(font,title,20,12,WHITE,false);g.drawString(font,tr(homeMode?"home_subtitle":settingsMode?"settings_subtitle":"subtitle"),20,33,MUTED,false);
-        var d=menu.device();if(d==null)return;
-        if(homeMode){
-            g.drawString(font,tr("home_title"),20,53,ACCENT,false);String[] channels={"lights","door","gas","other"};
-            for(int i=0;i<4;i++){int y=73+i*30;g.drawString(font,tr("channel_"+channels[i]),30,y,WHITE,false);g.drawString(font,Component.translatable("screen.homesystems.relay_count",d.homeNetwork().count(i)),30,y+11,MUTED,false);g.drawString(font,tr(d.homeNetwork().enabled(i)?"state_on":"state_off"),149,y+5,d.homeNetwork().enabled(i)?ACCENT:MUTED,false);}
-            g.drawString(font,tr("home_hint"),20,205,MUTED,false);g.drawString(font,tr("home_hint2"),20,219,MUTED,false);return;
-        }
-        if(videoMode){
-            g.drawString(font,tr(camera.hasFrame()?"live":d.state()==DeviceBlockEntity.CONNECTED&&!d.peerHasVideo()?"audio_only":"no_video"),26,57,ACCENT,true);
-            if(!d.peerNumber().isEmpty())g.drawString(font,Component.translatable("screen.homesystems.peer",d.peerNumber()),26,183,WHITE,true);return;
-        }
-        g.drawString(font,font.plainSubstrByWidth(d.addressLabel().getString(),260),28,66,WHITE,false);
-        if(settingsMode){
-            g.drawString(font,tr(DeviceRouting.guard(d)?"guard_settings":"address_settings"),28,53,ACCENT,false);
-            g.drawString(font,tr(DeviceRouting.guard(d)?"guard_number":"assigned_guard"),20,98,MUTED,false);
-            if(!DeviceRouting.guard(d)){g.drawString(font,tr("building"),120,98,MUTED,false);g.drawString(font,tr("unit"),220,98,MUTED,false);}
-            g.drawString(font,tr("address_range"),20,207,MUTED,false);g.drawString(font,tr("outside_lobby_hint"),20,220,MUTED,false);return;
-        }
-        String status=switch(d.state()){case DeviceBlockEntity.OUTGOING->"outgoing";case DeviceBlockEntity.RINGING->"ringing";case DeviceBlockEntity.CONNECTED->"connected";default->"idle";};
-        g.drawString(font,tr(status),28,53,ACCENT,false);
-        if(!d.peerNumber().isEmpty()){var peer=Component.translatable("screen.homesystems.peer",d.peerNumber());g.drawString(font,peer,292-font.width(peer),53,WHITE,false);}
-        g.drawString(font,tr("dial_building"),20,109,MUTED,false);g.drawString(font,tr("dial_unit"),120,109,MUTED,false);if(!DeviceRouting.guard(d))g.drawString(font,tr("dial_guard"),220,109,MUTED,false);
-        g.drawString(font,tr(d.state()==DeviceBlockEntity.IDLE&&!DeviceRouting.guard(d)&&d.addressConfigured()&&!d.canCallAlternateGuard()?"no_bypass_hint":"text_hint"),20,194,MUTED,false);
+        g.drawString(font,title,8,7,0xe3edf5,false);var d=menu.device();if(d==null)return;
+        g.drawString(font,Component.literal(d.communicationType()==0?"STAR":"BUS"),350,7,0x84cbe3,false);
+        if(settingsMode){g.drawString(font,tr(design==ProductDesign.GUARD?"guard_number":"assigned_guard"),24,58,0xffffff,false);if(design!=ProductDesign.GUARD){g.drawString(font,tr("building"),150,58,0xffffff,false);g.drawString(font,tr("unit"),276,58,0xffffff,false);}g.drawString(font,tr("communication_type"),24,132,0xffffff,false);g.drawString(font,tr("address_range"),24,34,0xabc2d1,false);return;}
+        g.drawString(font,font.plainSubstrByWidth(d.addressLabel().getString(),380),8,201,0xb3c8d6,false);
+        if(building.visible){g.drawString(font,tr("panel_building"),building.getX()-leftPos,building.getY()-topPos-10,0xc3d7e5,false);g.drawString(font,tr("panel_unit"),unit.getX()-leftPos,unit.getY()-topPos-10,0xc3d7e5,false);}
+        if(design==ProductDesign.INTERPHONE)g.drawString(font,tr(d.offHook()?"handset_down":"handset_up"),8,32,0xabc2d1,false);
     }
-    @Override public void render(GuiGraphics g,int mx,int my,float partial){renderBackground(g);super.render(g,mx,my,partial);renderTooltip(g,mx,my);}
-    @Override public boolean keyPressed(int key,int scan,int modifiers){if(key==256){onClose();return true;}for(var b:new EditBox[]{targetBuilding,targetUnit,targetGuard,settingGuard,settingBuilding,settingUnit})if(b.visible&&b.isFocused()&&key==minecraft.options.keyInventory.getKey().getValue())return true;return super.keyPressed(key,scan,modifiers);}
+    @Override public void render(GuiGraphics g,int x,int y,float partial){renderBackground(g);super.render(g,x,y,partial);renderTooltip(g,x,y);}
+    @Override public boolean keyPressed(int key,int scan,int mods){if(key==256){onClose();return true;}for(var field:fields)if(field.visible&&field.isFocused()&&key==minecraft.options.keyInventory.getKey().getValue())return true;return super.keyPressed(key,scan,mods);}
     @Override public void removed(){camera.close();super.removed();}
 }

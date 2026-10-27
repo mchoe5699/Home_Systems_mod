@@ -34,6 +34,7 @@ import net.minecraftforge.network.NetworkHooks;
 public class DeviceBlock extends BaseEntityBlock {
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
     public static final net.minecraft.world.level.block.state.properties.IntegerProperty MODEL = net.minecraft.world.level.block.state.properties.IntegerProperty.create("model", 0, SiblingModels.MAX_SLOT);
+    public static final BooleanProperty OFFHOOK = BooleanProperty.create("offhook");
     public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
     private static final VoxelShape NORTH = Block.box(2, 1, 12, 14, 15, 16);
     private static final VoxelShape SOUTH = Block.box(2, 1, 0, 14, 15, 4);
@@ -42,10 +43,10 @@ public class DeviceBlock extends BaseEntityBlock {
 
     public DeviceBlock(Properties properties) {
         super(properties);
-        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(POWERED, false).setValue(MODEL, 0));
+        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(POWERED, false).setValue(MODEL, 0).setValue(OFFHOOK, false));
     }
 
-    @Override protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) { builder.add(FACING, POWERED, MODEL); }
+    @Override protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) { builder.add(FACING, POWERED, MODEL, OFFHOOK); }
     @Override public BlockState getStateForPlacement(BlockPlaceContext context) {
         Direction face = context.getClickedFace();
         return defaultBlockState().setValue(FACING, face.getAxis().isHorizontal() ? face : context.getHorizontalDirection().getOpposite());
@@ -53,7 +54,15 @@ public class DeviceBlock extends BaseEntityBlock {
     @Override public BlockState rotate(BlockState state, Rotation rotation) { return state.setValue(FACING, rotation.rotate(state.getValue(FACING))); }
     @Override public BlockState mirror(BlockState state, Mirror mirror) { return state.rotate(mirror.getRotation(state.getValue(FACING))); }
     @Override public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
-        return switch (state.getValue(FACING)) { case SOUTH -> SOUTH; case EAST -> EAST; case WEST -> WEST; default -> NORTH; };
+        var d=ProductDesign.of(state);
+        double x0=d.x0,y0=d.y0,z0=d.z0,x1=d.x1,y1=d.y1,z1=d.z1;
+        if(d.desktop){y0=0;z0=3;z1=16;}
+        return switch(state.getValue(FACING)){
+            case EAST->Block.box(16-z1,y0,x0,16-z0,y1,x1);
+            case SOUTH->Block.box(16-x1,y0,16-z1,16-x0,y1,16-z0);
+            case WEST->Block.box(z0,y0,16-x1,z1,y1,16-x0);
+            default->Block.box(x0,y0,z0,x1,y1,z1);
+        };
     }
     @Override public RenderShape getRenderShape(BlockState state) { return RenderShape.MODEL; }
     @Override public BlockEntity newBlockEntity(BlockPos pos, BlockState state) { return new DeviceBlockEntity(pos, state); }

@@ -163,5 +163,17 @@
   "screen.homesystems.sibling_hint": "Current model disabled - click to apply",
   "message.homesystems.no_siblings": "[Home Systems] This product has no registered sibling models.",
   "message.homesystems.sibling_busy": "[Home Systems] End the call before changing models.",
-  "message.homesystems.sibling_changed": "[Home Systems] Model changed to %s."
+  "message.homesystems.sibling_changed": "[Home Systems] Model changed to %s.",
+  "screen.homesystems.handset": "Lift / replace receiver",
+  "screen.homesystems.handset_up": "Click receiver to lift",
+  "screen.homesystems.handset_down": "Click receiver to hang up",
+  "screen.homesystems.monitor": "Entrance monitor",
+  "screen.homesystems.keypad": "Digits - * erase - # next/call",
+  "screen.homesystems.communication_type": "Communication (matching types only)",
+  "message.homesystems.type_saved": "[Home Systems] Communication type saved. Only matching types can link or call.",
+  "message.homesystems.monitor_unavailable": "[Home Systems] Use Home Link to pair a door camera in the same estate with a matching communication type.",
+  "screen.homesystems.panel_guard": "Guard",
+  "screen.homesystems.panel_home": "Controls",
+  "screen.homesystems.panel_building": "Bldg",
+  "screen.homesystems.panel_unit": "Unit"
 }

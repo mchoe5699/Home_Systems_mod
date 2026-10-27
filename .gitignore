@@ -6,3 +6,5 @@ run-client/
 *.iml
 .vscode/
 logs/
+
+run-gametest/

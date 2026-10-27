@@ -65,7 +65,7 @@ public final class AddressGameTests {
         h.assertTrue(lobby.call(guard)&&guard.answer(),"Assigned guard call failed");
         h.assertTrue(directory.guards(camera,654,false).isEmpty(),"Busy guard was incorrectly treated as Away");lobby.endCall();
         guard.setGuardPresence(DeviceBlockEntity.GUARD_AWAY);
-        h.assertTrue(directory.canBypass(lobby)&&directory.guards(lobby,321,true).equals(List.of(otherGuard)),"Away did not permit routing around assigned guard");
+        h.assertTrue(directory.canBypass(lobby)&&directory.guards(lobby,321,true).equals(List.of(otherGuard)),"Away did not permit routing around assigned guard; bypass="+directory.canBypass(lobby)+" preferred="+directory.guards(lobby,321,true).stream().map(d->d.number()+":"+d.guardPresence()+":"+d.communicationType()).toList()+" index="+directory.save(new net.minecraft.nbt.CompoundTag()).getList("GuardPresence",10));
         h.assertTrue(lobby.callMany(directory.guards(lobby,654,false))&&otherGuard.answer(),"Explicit alternate guard call blocked while assigned guard was Away");
         guard.setGuardPresence(DeviceBlockEntity.GUARD_PRESENT);
         DeviceBlockEntity.serverTick(h.getLevel(),lobby.getBlockPos(),lobby.getBlockState(),lobby);

@@ -1,20 +1,21 @@
 {
   "ambientocclusion": false,
   "textures": {
-    "front": "homesystems:block/lobby_phone",
-    "body": "minecraft:block/smooth_stone",
-    "particle": "homesystems:block/lobby_phone"
+    "front": "homesystems:block/lobby_phone_base",
+    "body": "homesystems:block/lobby_phone_side",
+    "receiver": "homesystems:block/lobby_phone_receiver",
+    "particle": "homesystems:block/lobby_phone_base"
   },
   "elements": [
     {
       "from": [
-        2,
-        1,
-        13
+        2.6,
+        1.5,
+        13.5
       ],
       "to": [
-        14,
-        15,
+        13.4,
+        13.45,
         16
       ],
       "faces": {
@@ -73,38 +74,6 @@
           ]
         }
       }
-    },
-    {
-      "from": [
-        4,
-        14,
-        12
-      ],
-      "to": [
-        12,
-        15,
-        16
-      ],
-      "faces": {
-        "north": {
-          "texture": "#body"
-        },
-        "south": {
-          "texture": "#body"
-        },
-        "east": {
-          "texture": "#body"
-        },
-        "west": {
-          "texture": "#body"
-        },
-        "up": {
-          "texture": "#body"
-        },
-        "down": {
-          "texture": "#body"
-        }
-      }
     }
   ],
   "display": {
@@ -114,15 +83,10 @@
         160,
         0
       ],
-      "translation": [
-        0,
-        0,
-        0
-      ],
       "scale": [
-        0.95,
-        0.95,
-        0.95
+        0.9,
+        0.9,
+        0.9
       ]
     },
     "fixed": {
@@ -130,33 +94,6 @@
         0,
         180,
         0
-      ],
-      "translation": [
-        0,
-        0,
-        -5
-      ],
-      "scale": [
-        1,
-        1,
-        1
-      ]
-    },
-    "thirdperson_righthand": {
-      "rotation": [
-        75,
-        45,
-        0
-      ],
-      "translation": [
-        0,
-        2.5,
-        0
-      ],
-      "scale": [
-        0.45,
-        0.45,
-        0.45
       ]
     },
     "firstperson_righthand": {
@@ -165,21 +102,16 @@
         135,
         0
       ],
-      "translation": [
-        0,
-        0,
-        0
-      ],
       "scale": [
         0.6,
         0.6,
         0.6
       ]
     },
-    "ground": {
-      "translation": [
-        0,
-        3,
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
         0
       ],
       "scale": [

@@ -49,10 +49,9 @@ public final class CameraView implements AutoCloseable {
     public void accept(VideoFrame frame) { this.frame = frame; receivedAt = System.currentTimeMillis(); }
     public boolean hasFrame() { return frame != null && System.currentTimeMillis() - receivedAt < 2500; }
 
-    public void render(GuiGraphics graphics, int x, int y, int width, int height) {
+    private boolean prepare() {
         Minecraft minecraft = Minecraft.getInstance();
-        if (!hasFrame() || minecraft.level == null) return;
-        graphics.flush();
+        if (!hasFrame() || minecraft.level == null) return false;
         if (target == null) target = new TextureTarget(384, 216, true, Minecraft.ON_OSX);
         if (frame != renderedFrame) {
         Matrix4f projection = new Matrix4f(RenderSystem.getProjectionMatrix());
@@ -121,6 +120,19 @@ public final class CameraView implements AutoCloseable {
         }
         renderedFrame = frame;
         }
+        return true;
+    }
+    private net.minecraft.client.renderer.texture.DynamicTexture worldTexture;
+    private ResourceLocation worldTextureId;
+    private VideoFrame uploadedFrame;
+    public ResourceLocation worldTexture(){
+        if(!prepare())return null;
+        if(worldTexture==null){worldTexture=new net.minecraft.client.renderer.texture.DynamicTexture(384,216,false);worldTextureId=Minecraft.getInstance().getTextureManager().register("homesystems_camera",worldTexture);}
+        if(uploadedFrame!=frame){RenderSystem.bindTexture(target.getColorTextureId());worldTexture.getPixels().downloadTexture(0,false);worldTexture.upload();uploadedFrame=frame;}
+        return worldTextureId;
+    }
+    public void render(GuiGraphics graphics,int x,int y,int width,int height){
+        graphics.flush();if(!prepare())return;
         RenderSystem.setShader(GameRenderer::getPositionTexShader);
         RenderSystem.setShaderTexture(0, target.getColorTextureId());
         RenderSystem.disableBlend();
@@ -140,6 +152,7 @@ public final class CameraView implements AutoCloseable {
     public void clear() { frame = null; renderedFrame = null; actors.clear(); }
     @Override public void close() {
         clear();
+        if(worldTextureId!=null){Minecraft.getInstance().getTextureManager().release(worldTextureId);worldTexture=null;worldTextureId=null;uploadedFrame=null;}
         if (target != null) { target.destroyBuffers(); target = null; }
     }
 }

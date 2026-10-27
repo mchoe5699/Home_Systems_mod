@@ -1,18 +1,35 @@
 {
   "variants": {
-    "facing=north": {
-      "model": "homesystems:block/interphone"
+    "facing=north,offhook=false": {
+      "model": "homesystems:block/interphone",
+      "y": 0
     },
-    "facing=east": {
+    "facing=north,offhook=true": {
+      "model": "homesystems:block/interphone_offhook",
+      "y": 0
+    },
+    "facing=east,offhook=false": {
       "model": "homesystems:block/interphone",
       "y": 90
     },
-    "facing=south": {
+    "facing=east,offhook=true": {
+      "model": "homesystems:block/interphone_offhook",
+      "y": 90
+    },
+    "facing=south,offhook=false": {
       "model": "homesystems:block/interphone",
       "y": 180
     },
-    "facing=west": {
+    "facing=south,offhook=true": {
+      "model": "homesystems:block/interphone_offhook",
+      "y": 180
+    },
+    "facing=west,offhook=false": {
       "model": "homesystems:block/interphone",
+      "y": 270
+    },
+    "facing=west,offhook=true": {
+      "model": "homesystems:block/interphone_offhook",
       "y": 270
     }
   }
